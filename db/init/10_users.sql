@@ -1,0 +1,66 @@
+USE ces;
+
+-- user info
+CREATE TABLE IF NOT EXISTS users(
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(40),
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    account_suspended BOOLEAN NOT NULL DEFAULT FALSE,
+    promo_opt_in BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- email verification tokens
+CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    user_id BIGINT UNSIGNED NOT NULL,
+    token CHAR(64) PRIMARY KEY,
+    expires_at DATETIME NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_evt_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- addresses
+CREATE TABLE IF NOT EXISTS addresses (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    label VARCHAR(50) DEFAULT 'home',
+    street VARCHAR(200) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(20),
+    country VARCHAR(100) NOT NULL DEFAULT 'USA',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_addr_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- payment cards (max 3)
+CREATE TABLE IF NOT EXISTS payment_cards (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT UNSIGNED NOT NULL,
+    brand ENUM('VISA', 'MASTERCARD', 'AMEX', 'DISCOVER', 'OTHER') NOT NULL,
+    last4 CHAR(4) NOT NULL,
+    exp_month TINYINT UNSIGNED NOT NULL CHECK (exp_month BETWEEN 1 AND 12),
+    exp_year SMALLINT UNSIGNED NOT NULL,
+    billing_addr_id BIGINT UNSIGNED,
+    token VARCHAR(255) NOT NULL, -- encrypted/tokenized card data
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_card_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_card_addr FOREIGN KEY (billing_addr_id) REFERENCES addresses(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- for password reset
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    user_id BIGINT UNSIGNED NOT NULL,
+    token CHAR(64) PRIMARY KEY,
+    expires_at DATETIME NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_prt_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
