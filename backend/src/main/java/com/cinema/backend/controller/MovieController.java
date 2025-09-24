@@ -37,5 +37,14 @@ public class MovieController {
                 return movieRepo.search(term);
     }
 
+    // GET /api/movies/{id}
+    @GetMapping("/{id}")
+    public Movie getMovieById(@PathVariable Long id) {
+        return movieRepo.findById(id)
+        .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+            org.springframework.http.HttpStatus.NOT_FOUND, "Movie not found"));
+    }
+
+
 
 }
