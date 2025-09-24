@@ -27,6 +27,15 @@ public class MovieController {
     @GetMapping("/coming-soon")
     public List<Movie> getComingSoon() {
         return movieRepo.findComingSoon();
-        }
+    }
+
+    // GET /api/movies/search
+    @GetMapping("/search")
+    public List<Movie> search(@RequestParam("q") String q) {
+        String term = q == null ? "" : q.trim();
+            if (term.isEmpty()) return List.of(); //empty term returns empty list
+                return movieRepo.search(term);
+    }
+
 
 }
