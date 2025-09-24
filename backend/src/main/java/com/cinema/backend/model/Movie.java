@@ -4,6 +4,13 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import java.util.HashSet;
+import java.util.Set;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.JoinColumn;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "movies")
 public class Movie {
@@ -38,7 +45,18 @@ public class Movie {
     private LocalDateTime createdAt;    
 
     @Column(name = "updated_at", insertable = false, updatable = false)
-    private LocalDateTime updatedAt;    
+    private LocalDateTime updatedAt;   
+
+    // Many-to-Many relationship with Category
+    @ManyToMany
+    @JoinTable( 
+        name = "movie_categories", 
+        joinColumns = @JoinColumn(name = "movie_id"), 
+        inverseJoinColumns = @JoinColumn(name = "category_id") 
+    )
+    @JsonIgnore // to prevent circular references during JSON serialization
+    private Set<Category> categories = new HashSet<>();
+
 
     //Getters and Setters
     public Long getId() { return id; }
