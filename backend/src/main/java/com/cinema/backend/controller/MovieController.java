@@ -22,4 +22,11 @@ public class MovieController {
     public List<Movie> getNowPlaying() {
         return movieRepo.findNowPlaying();
     }
+
+    // GET /api/movies/coming-soon
+    @GetMapping("/coming-soon")
+    public List<Movie> getComingSoon() {
+        return movieRepo.findComingSoon();
+        }
+
 }
