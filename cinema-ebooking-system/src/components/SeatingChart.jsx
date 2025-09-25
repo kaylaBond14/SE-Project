@@ -198,5 +198,5 @@ const SeatingChart = ({ rows = 8, cols = 10, occupiedSeats = [] }) => {
   );
 };
 
-// Export the component so it can be used in other files (like Booking.jsx).
+// Export component so it can be used in the booking.jsx file.
 export default SeatingChart;
