@@ -26,6 +26,11 @@ public class MovieController {
         this.screeningRepo = screeningRepo;
     }
 
+    @GetMapping
+    public List<Movie> getAll() {
+        return movieRepo.findAll();
+    }
+
     // GET /api/movies/now-playing
     @GetMapping("/now-playing")
     public List<Movie> getNowPlaying() {
@@ -93,4 +98,12 @@ public class MovieController {
         String g = (genre == null || genre.isBlank()) ? null : genre.trim();
         return movieRepo.filterByGenre(g);
     }
+
+    @GetMapping("/genres")
+    public List<String> genres() {
+        return movieRepo.distinctGenres();
+    }
 }
+
+    
+

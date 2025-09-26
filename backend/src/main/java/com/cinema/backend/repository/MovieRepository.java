@@ -48,13 +48,31 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
 */
 
     // Filter movies by genre (category title)
-    @Query("""
-       SELECT DISTINCT m FROM Movie m
-       LEFT JOIN m.categories c
-       WHERE (:genre IS NULL OR LOWER(c.title) = LOWER(:genre))
-       ORDER BY m.releaseDate DESC
-       """)
-    List<Movie> filterByGenre(@Param("genre") String genre);           
+@Query("""
+  SELECT m
+  FROM Movie m
+  WHERE (:genre IS NULL)
+     OR EXISTS (
+          SELECT 1
+          FROM m.categories c
+          WHERE LOWER(TRIM(c.title)) = LOWER(TRIM(:genre))
+     )
+  ORDER BY m.releaseDate DESC
+""")
+List<Movie> filterByGenre(@Param("genre") String genre);
+
+// Distinct genres for dropdown
+@Query("""
+  select distinct c.title
+  from Movie m
+  join m.categories c
+  where c.title is not null
+  order by c.title
+""")
+List<String> distinctGenres();
+
+
+
 
 
 }
