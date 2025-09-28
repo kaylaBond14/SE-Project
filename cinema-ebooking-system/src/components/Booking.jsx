@@ -11,6 +11,25 @@ export default function Booking({ movie, showtime, onGoBack }) {
   // Would fetch this from Spring Boot API (DB)!
   const occupiedSeats = ["A2", "A3", "C5", "C7"];
 
+  // Checkout button
+  const checkoutButtonStyle = {
+    padding: '1rem 2rem',
+    fontSize: '1.25rem',
+    fontWeight: 'bold',
+    backgroundColor: '#cc0000', // Red background for prominence
+    color: 'white',
+    border: 'none',
+    borderRadius: '0.25rem',
+    cursor: 'pointer',
+    marginTop: '2rem', // Add some space above the button
+  };
+
+  // Dummy handler for the checkout button 
+  const handleCheckout = () => {
+    console.log("Checkout button clicked, but functionality is not implemented yet.");
+    // Will prompt user to sign in if not, and continue to checkout page.
+  };
+
   return (
     <div style={bookingContainerStyle}>
       {/* Button to go back to the movie detail page */}
@@ -21,6 +40,13 @@ export default function Booking({ movie, showtime, onGoBack }) {
       {/* SeatingChart component here. Pass occupied seats as a prop to component */}
       <SeatingChart occupiedSeats={occupiedSeats} />
 
+    {/* Checkout button */}
+    <button 
+        style={checkoutButtonStyle}
+        onClick={handleCheckout} // Use the dummy handler
+      >
+        Continue to Checkout
+      </button>
     </div>
   );
 }
