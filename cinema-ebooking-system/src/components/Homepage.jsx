@@ -19,11 +19,12 @@ export default function Home({ onMovieSelect }) {
           fetch('/api/movies/now-playing'),
           fetch('/api/movies/coming-soon'),
         ]);
+        
         const [nowData, soonData] = await Promise.all([
           nowRes.json(),
           soonRes.json(),
         ]);
-  
+        
         // helper to normalize a movie object into the shape your UI expects
         const norm = (m, isComingSoon) => ({
           id: m.id,
@@ -42,7 +43,8 @@ export default function Home({ onMovieSelect }) {
           ...(Array.isArray(nowData) ? nowData.map(m => norm(m, false)) : []),
           ...(Array.isArray(soonData) ? soonData.map(m => norm(m, true)) : []),
         ];
-  
+        
+        console.log('Combined movies:', combined);
         setAllMovies(combined);
         setFilteredMovies(combined);
       } catch (e) {
@@ -52,6 +54,7 @@ export default function Home({ onMovieSelect }) {
       }
     })();
   }, []);
+
 
   // filtering
   useEffect(() => {
