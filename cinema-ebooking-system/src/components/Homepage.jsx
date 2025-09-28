@@ -34,7 +34,10 @@ export default function Home({ onMovieSelect }) {
           description: m.synopsis,
           genre: m.genre ?? '',
           isComingSoon,                                 //mark which section it belongs to
-          showtimes: ['2:00 PM', '5:00 PM', '8:00 PM'], // hardcoded showtimes
+          showtimes: isComingSoon 
+          ? [] // Set to an empty array (or null) if the movie is coming soon
+          : m.showtimes ?? ['2:00 PM', '5:00 PM', '8:00 PM'], // Use actual showtimes (m.showtimes) or the hardcoded fallback
+ // hardcoded showtimes
         });
   
         // combine both lists into one array
