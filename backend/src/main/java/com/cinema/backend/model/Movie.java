@@ -10,6 +10,10 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.JoinColumn;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "movies")
@@ -57,6 +61,15 @@ public class Movie {
     @JsonIgnore // to prevent circular references during JSON serialization
     private Set<Category> categories = new HashSet<>();
 
+    @JsonProperty("genres")
+    @Transient
+    public List<String> getGenres() {
+        return categories.stream()
+        .map(Category::getTitle)
+        .filter(Objects::nonNull)
+        .sorted()
+        .toList();
+    }
 
     //Getters and Setters
     public Long getId() { return id; }
