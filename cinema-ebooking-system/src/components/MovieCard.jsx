@@ -33,7 +33,7 @@ export default function MovieCard({ movie, onMovieSelect }) {
     <div style={cardStyle} onClick={() => onMovieSelect(movie)}>
       <img src={movie.posterUrl} alt={movie.title} style={posterStyle} />
       <h2 style={titleStyle}>{movie.title}</h2>
-      <p style={pStyle}>{movie.genre} | {movie.rating}</p>
+      <p style={pStyle}>{movie.genres?.join(', ')} | {movie.rating}</p>
       <p style={pStyle}>Showtimes: {movie.showtimes.join(', ')}</p>
     </div>
   );

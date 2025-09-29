@@ -19,12 +19,11 @@ export default function Home({ onMovieSelect }) {
           fetch('/api/movies/now-playing'),
           fetch('/api/movies/coming-soon'),
         ]);
-        
         const [nowData, soonData] = await Promise.all([
           nowRes.json(),
           soonRes.json(),
         ]);
-        
+  
         // helper to normalize a movie object into the shape your UI expects
         const norm = (m, isComingSoon) => ({
           id: m.id,
@@ -37,7 +36,7 @@ export default function Home({ onMovieSelect }) {
           isComingSoon,                                 //mark which section it belongs to
           showtimes: isComingSoon 
           ? [] // Set to an empty array (or null) if the movie is coming soon
-          : m.showtimes ?? ['2:00 PM', '5:00 PM', '8:00 PM'], // Use actual showtimes (m.showtimes) or the hardcoded fallback
+      : m.showtimes ?? ['2:00 PM', '5:00 PM', '8:00 PM'], // Use actual showtimes (m.showtimes) or the hardcoded fallback
  // hardcoded showtimes
         });
   
@@ -46,8 +45,7 @@ export default function Home({ onMovieSelect }) {
           ...(Array.isArray(nowData) ? nowData.map(m => norm(m, false)) : []),
           ...(Array.isArray(soonData) ? soonData.map(m => norm(m, true)) : []),
         ];
-        
-        console.log('Combined movies:', combined);
+  
         setAllMovies(combined);
         setFilteredMovies(combined);
       } catch (e) {
@@ -57,7 +55,6 @@ export default function Home({ onMovieSelect }) {
       }
     })();
   }, []);
-
 
   // filtering
   useEffect(() => {
