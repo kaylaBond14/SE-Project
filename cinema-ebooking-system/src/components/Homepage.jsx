@@ -7,7 +7,7 @@ export default function Home({ onMovieSelect }) {
   const [allMovies, setAllMovies] = useState([]);
   const [filteredMovies, setFilteredMovies] = useState(allMovies);
   const [searchTerm, setSearchTerm] = useState('');
-  const [genreFilter, setGenreFilter] = useState('');
+  const [selectedGenres, setSelectedGenres] = useState([]); //array of strings
   const [genres, setGenres] = useState([]);
 
 
@@ -32,7 +32,20 @@ export default function Home({ onMovieSelect }) {
           posterUrl: m.posterUrl ?? m.poster_url,
           trailerUrl: m.trailerUrl ?? m.trailer_url,
           description: m.synopsis,
-          genre: m.genre ?? '',
+          //genre: m.genre ?? '', //OLD CODE
+          //NEW CODE: Genre array for UI filtering
+          genres: Array.isArray(m?.genres)
+            ? m.genres
+            : (typeof m?.genre === 'string' 
+              ? m.genre.split(',').map(s => s.trim()).filter(Boolean)
+              : []),
+          //OLD STRING if still needed
+          genre: Array.isArray(m?.genres)
+            ? m.genres.join(', ')
+            : (typeof m?.genre === 'string' 
+              ? m.genre
+              : ''),
+          isComingSoon:
           isComingSoon,                                 //mark which section it belongs to
           showtimes: isComingSoon 
           ? [] // Set to an empty array (or null) if the movie is coming soon
@@ -57,6 +70,29 @@ export default function Home({ onMovieSelect }) {
   }, []);
 
   // filtering
+
+  useEffect(() => {
+    //start from all movies)
+    let base = allMovies;
+    // genre OR-logic: include a movie if it has ANY of the selected genres
+    // 
+    if (selectedGenres.length > 0) {
+      const selected = new Set(selectedGenres);
+      base = base.filter(m => (m.genres || []).some(g => selected.has(g)));
+    }
+
+    // search term (applied on top of genre filter)
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      base = base.filter(m => m.title.toLowerCase().includes(q));
+    }
+
+   setFilteredMovies(base);
+ }, [allMovies, selectedGenres, searchTerm]);
+
+
+  
+  /*
   useEffect(() => {
     (async () => {
       try {
@@ -92,7 +128,7 @@ export default function Home({ onMovieSelect }) {
       }
     })();
   }, [genreFilter, allMovies]);
-  
+  */
 
   useEffect(() => {
     (async () => {
@@ -107,6 +143,7 @@ export default function Home({ onMovieSelect }) {
     })();
   }, []);
   
+  /*
   useEffect(() => {
     let filtered = allMovies;
     if (searchTerm) {
@@ -116,7 +153,7 @@ export default function Home({ onMovieSelect }) {
     }
     setFilteredMovies(filtered);
   }, [searchTerm, allMovies]);
-  
+  */
 
   // Separate the filtered movies into 'Currently Running' and 'Coming Soon'.
   const currentlyRunning = filteredMovies.filter(movie => !movie.isComingSoon);
@@ -124,7 +161,19 @@ export default function Home({ onMovieSelect }) {
 
   // Event handlers for the search and filter inputs.
   const handleSearchChange = (e) => setSearchTerm(e.target.value);
-  const handleGenreChange = (e) => setGenreFilter(e.target.value);
+  
+  //Added: toggle genre selection
+  const toggleGenre = (g) => {
+    setSelectedGenres(prev =>
+      prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
+    );
+  }
+  //Added: Label for dropdown button
+  const selectedLabel =
+    selectedGenres.length === 0 ? 'All Genres' 
+    : selectedGenres.length <=2 ? selectedGenres.join(', ')
+    : `${selectedGenres.length} genres selected`;
+  const clearGenres = () => setSelectedGenres([]);
 
   // Dynamically create a list of all available genres for the dropdown.
   //const availableGenres = [...new Set(allMovies.map(movie => movie.genre))];
@@ -148,16 +197,39 @@ export default function Home({ onMovieSelect }) {
           onChange={handleSearchChange}
           style={inputStyle}
         />
-        <select
-          value={genreFilter}
-          onChange={handleGenreChange}
-          style={selectStyle}
+        {/* ADDED */}
+        <details>
+          <summary style={{ cursor: 'pointer', userSelect: 'none' }}>
+            {selectedLabel} ▾
+            </summary>
+            <div style={{ textAlign: 'left', marginTop: '0.5rem' }}>
+              {genres.map(g => (
+                <label key={g} style={{ display: 'block', margin: '0.25rem 0' }}>
+                  <input
+                      type="checkbox"
+                      checked={selectedGenres.includes(g)}
+                      onChange={() => toggleGenre(g)}
+                      />{' '}
+                      {g}
+                      </label>
+                    ))}
+                    {selectedGenres.length > 0 && (
+                      <button type="button" onClick={clearGenres} style={{ marginTop: '0.5rem' }}>
+                        Clear
+                        </button>
+                      )}
+                      </div>
+                      </details>
+        {/*CHANGED THIS<select
+          multiple
+          value={selectedGenres}
+          onChange={handleGenresChange}
+          style={{...selectStyle, height: '8rem'}}
         >
-          <option value="">All Genres</option>
           {genres.map(g => (
-          <option key={g} value={g}>{g}</option>
+            <option key={g} value={g}>{g}</option>
           ))}
-        </select>
+        </select>  */}    
       </div>
 
       {/* Grid for currently running movies */}
