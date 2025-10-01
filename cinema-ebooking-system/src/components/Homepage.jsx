@@ -90,11 +90,9 @@ export default function Home({ onMovieSelect }) {
    setFilteredMovies(base);
  }, [allMovies, selectedGenres, searchTerm]);
 
-
-  
-  /*
+  /* OLD serve-side, single-genre filtering
   useEffect(() => {
-    (async () => {
+    (async () => {`
       try {
         if (genreFilter) {
           const res = await fetch(`/api/movies/filter?genre=${encodeURIComponent(genreFilter)}`);
@@ -142,18 +140,6 @@ export default function Home({ onMovieSelect }) {
       }
     })();
   }, []);
-  
-  /*
-  useEffect(() => {
-    let filtered = allMovies;
-    if (searchTerm) {
-      filtered = filtered.filter(movie =>
-        movie.title.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    setFilteredMovies(filtered);
-  }, [searchTerm, allMovies]);
-  */
 
   // Separate the filtered movies into 'Currently Running' and 'Coming Soon'.
   const currentlyRunning = filteredMovies.filter(movie => !movie.isComingSoon);
@@ -162,17 +148,18 @@ export default function Home({ onMovieSelect }) {
   // Event handlers for the search and filter inputs.
   const handleSearchChange = (e) => setSearchTerm(e.target.value);
   
-  //Added: toggle genre selection
+  //NEW: toggle genre selection
   const toggleGenre = (g) => {
     setSelectedGenres(prev =>
       prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
     );
   }
-  //Added: Label for dropdown button
+  //NEW: Label for dropdown button
   const selectedLabel =
     selectedGenres.length === 0 ? 'All Genres' 
     : selectedGenres.length <=2 ? selectedGenres.join(', ')
     : `${selectedGenres.length} genres selected`;
+  //NEW: clear all genres
   const clearGenres = () => setSelectedGenres([]);
 
   // Dynamically create a list of all available genres for the dropdown.
@@ -197,11 +184,12 @@ export default function Home({ onMovieSelect }) {
           onChange={handleSearchChange}
           style={inputStyle}
         />
-        {/* ADDED */}
+        {/* NEW (TEMP?): multi-select genre "dropdown"*/}
         <details>
           <summary style={{ cursor: 'pointer', userSelect: 'none' }}>
             {selectedLabel} ▾
             </summary>
+            {/*Menu body: can change around (add max height?) - vertical list*/}
             <div style={{ textAlign: 'left', marginTop: '0.5rem' }}>
               {genres.map(g => (
                 <label key={g} style={{ display: 'block', margin: '0.25rem 0' }}>
@@ -213,23 +201,14 @@ export default function Home({ onMovieSelect }) {
                       {g}
                       </label>
                     ))}
+                    {/*Clear button*/}
                     {selectedGenres.length > 0 && (
                       <button type="button" onClick={clearGenres} style={{ marginTop: '0.5rem' }}>
                         Clear
-                        </button>
-                      )}
-                      </div>
-                      </details>
-        {/*CHANGED THIS<select
-          multiple
-          value={selectedGenres}
-          onChange={handleGenresChange}
-          style={{...selectStyle, height: '8rem'}}
-        >
-          {genres.map(g => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </select>  */}    
+                      </button>
+                    )}
+              </div>
+          </details>    
       </div>
 
       {/* Grid for currently running movies */}
