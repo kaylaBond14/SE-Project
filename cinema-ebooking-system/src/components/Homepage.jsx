@@ -111,8 +111,8 @@ export default function Home({ onMovieSelect }) {
               trailerUrl: m.trailerUrl ?? m.trailer_url,
               description: m.synopsis,
               genre: m.genre ?? '',
-              isComingSoon: original?.isComingSoon ?? false,                 // ✅ keep section
-              showtimes: original?.showtimes ?? ['2:00 PM','5:00 PM','8:00 PM'], // ✅ keep times
+              isComingSoon: original?.isComingSoon ?? false,                 
+              showtimes: original?.showtimes ?? ['2:00 PM','5:00 PM','8:00 PM'], 
             };
           });
   
@@ -175,7 +175,6 @@ export default function Home({ onMovieSelect }) {
 
   return (
     <div style={containerStyle}>
-      <h1 style={headingStyle}>Currently Running</h1>
       {/* Search and Filter UI */}
       <div style={searchFilterContainerStyle}>
         <input
@@ -210,7 +209,7 @@ export default function Home({ onMovieSelect }) {
               </div>
           </details>    
       </div>
-
+      <h1 style={headingStyle}>Currently Running</h1>
       {/* Grid for currently running movies */}
       <div style={gridStyle}>
         {currentlyRunning.map((movie) => (
