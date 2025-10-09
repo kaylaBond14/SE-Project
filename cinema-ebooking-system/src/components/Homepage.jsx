@@ -74,11 +74,10 @@ export default function Home({ onMovieSelect }) {
   useEffect(() => {
     //start from all movies)
     let base = allMovies;
-    // genre OR-logic: include a movie if it has ANY of the selected genres
-    // 
+    // genre OR-logic: include a movie if it has ALL of the selected genres
     if (selectedGenres.length > 0) {
-      const selected = new Set(selectedGenres);
-      base = base.filter(m => (m.genres || []).some(g => selected.has(g)));
+      const selected = new Set(selectedGenres); 
+      base = base.filter(m => [...selected].every(g => (m.genres || []).includes(g)));
     }
 
     // search term (applied on top of genre filter)
