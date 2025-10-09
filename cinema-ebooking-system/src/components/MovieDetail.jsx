@@ -40,7 +40,7 @@ export default function MovieDetail({ movie, onShowtimeSelect, onGoBack }) {
         <div style={detailStyle}>
           <h1 style={titleStyle}>{movie.title}</h1>
           <p style={pStyle}><strong>Rating:</strong> {movie.rating}</p>
-          <p style={pStyle}><strong>Genre:</strong> {movie.genre}</p>
+          <p style={pStyle}><strong>Genre:</strong> {movie.genres?.join(', ')}</p>
           <p style={pStyle}><strong>Description:</strong> {movie.description}</p>
           <h3>Showtimes:</h3>
           <div>

@@ -7,7 +7,7 @@ export default function Home({ onMovieSelect }) {
   const [allMovies, setAllMovies] = useState([]);
   const [filteredMovies, setFilteredMovies] = useState(allMovies);
   const [searchTerm, setSearchTerm] = useState('');
-  const [genreFilter, setGenreFilter] = useState('');
+  const [selectedGenres, setSelectedGenres] = useState([]); //array of strings
   const [genres, setGenres] = useState([]);
 
 
@@ -19,12 +19,11 @@ export default function Home({ onMovieSelect }) {
           fetch('/api/movies/now-playing'),
           fetch('/api/movies/coming-soon'),
         ]);
-        
         const [nowData, soonData] = await Promise.all([
           nowRes.json(),
           soonRes.json(),
         ]);
-        
+  
         // helper to normalize a movie object into the shape your UI expects
         const norm = (m, isComingSoon) => ({
           id: m.id,
@@ -33,11 +32,24 @@ export default function Home({ onMovieSelect }) {
           posterUrl: m.posterUrl ?? m.poster_url,
           trailerUrl: m.trailerUrl ?? m.trailer_url,
           description: m.synopsis,
-          genre: m.genre ?? '',
+          //genre: m.genre ?? '', //OLD CODE
+          //NEW CODE: Genre array for UI filtering
+          genres: Array.isArray(m?.genres)
+            ? m.genres
+            : (typeof m?.genre === 'string' 
+              ? m.genre.split(',').map(s => s.trim()).filter(Boolean)
+              : []),
+          //OLD STRING if still needed
+          genre: Array.isArray(m?.genres)
+            ? m.genres.join(', ')
+            : (typeof m?.genre === 'string' 
+              ? m.genre
+              : ''),
+          isComingSoon:
           isComingSoon,                                 //mark which section it belongs to
           showtimes: isComingSoon 
           ? [] // Set to an empty array (or null) if the movie is coming soon
-          : m.showtimes ?? ['2:00 PM', '5:00 PM', '8:00 PM'], // Use actual showtimes (m.showtimes) or the hardcoded fallback
+      : m.showtimes ?? ['2:00 PM', '5:00 PM', '8:00 PM'], // Use actual showtimes (m.showtimes) or the hardcoded fallback
  // hardcoded showtimes
         });
   
@@ -46,8 +58,7 @@ export default function Home({ onMovieSelect }) {
           ...(Array.isArray(nowData) ? nowData.map(m => norm(m, false)) : []),
           ...(Array.isArray(soonData) ? soonData.map(m => norm(m, true)) : []),
         ];
-        
-        console.log('Combined movies:', combined);
+  
         setAllMovies(combined);
         setFilteredMovies(combined);
       } catch (e) {
@@ -58,10 +69,29 @@ export default function Home({ onMovieSelect }) {
     })();
   }, []);
 
-
   // filtering
+
   useEffect(() => {
-    (async () => {
+    //start from all movies)
+    let base = allMovies;
+    // genre OR-logic: include a movie if it has ALL of the selected genres
+    if (selectedGenres.length > 0) {
+      const selected = new Set(selectedGenres); 
+      base = base.filter(m => [...selected].every(g => (m.genres || []).includes(g)));
+    }
+
+    // search term (applied on top of genre filter)
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      base = base.filter(m => m.title.toLowerCase().includes(q));
+    }
+
+   setFilteredMovies(base);
+ }, [allMovies, selectedGenres, searchTerm]);
+
+  /* OLD serve-side, single-genre filtering
+  useEffect(() => {
+    (async () => {`
       try {
         if (genreFilter) {
           const res = await fetch(`/api/movies/filter?genre=${encodeURIComponent(genreFilter)}`);
@@ -80,8 +110,8 @@ export default function Home({ onMovieSelect }) {
               trailerUrl: m.trailerUrl ?? m.trailer_url,
               description: m.synopsis,
               genre: m.genre ?? '',
-              isComingSoon: original?.isComingSoon ?? false,                 // ✅ keep section
-              showtimes: original?.showtimes ?? ['2:00 PM','5:00 PM','8:00 PM'], // ✅ keep times
+              isComingSoon: original?.isComingSoon ?? false,                 
+              showtimes: original?.showtimes ?? ['2:00 PM','5:00 PM','8:00 PM'], 
             };
           });
   
@@ -95,7 +125,7 @@ export default function Home({ onMovieSelect }) {
       }
     })();
   }, [genreFilter, allMovies]);
-  
+  */
 
   useEffect(() => {
     (async () => {
@@ -109,17 +139,6 @@ export default function Home({ onMovieSelect }) {
       }
     })();
   }, []);
-  
-  useEffect(() => {
-    let filtered = allMovies;
-    if (searchTerm) {
-      filtered = filtered.filter(movie =>
-        movie.title.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    setFilteredMovies(filtered);
-  }, [searchTerm, allMovies]);
-  
 
   // Separate the filtered movies into 'Currently Running' and 'Coming Soon'.
   const currentlyRunning = filteredMovies.filter(movie => !movie.isComingSoon);
@@ -127,7 +146,20 @@ export default function Home({ onMovieSelect }) {
 
   // Event handlers for the search and filter inputs.
   const handleSearchChange = (e) => setSearchTerm(e.target.value);
-  const handleGenreChange = (e) => setGenreFilter(e.target.value);
+  
+  //NEW: toggle genre selection
+  const toggleGenre = (g) => {
+    setSelectedGenres(prev =>
+      prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
+    );
+  }
+  //NEW: Label for dropdown button
+  const selectedLabel =
+    selectedGenres.length === 0 ? 'All Genres' 
+    : selectedGenres.length <=2 ? selectedGenres.join(', ')
+    : `${selectedGenres.length} genres selected`;
+  //NEW: clear all genres
+  const clearGenres = () => setSelectedGenres([]);
 
   // Dynamically create a list of all available genres for the dropdown.
   //const availableGenres = [...new Set(allMovies.map(movie => movie.genre))];
@@ -142,7 +174,6 @@ export default function Home({ onMovieSelect }) {
 
   return (
     <div style={containerStyle}>
-      <h1 style={headingStyle}>Currently Running</h1>
       {/* Search and Filter UI */}
       <div style={searchFilterContainerStyle}>
         <input
@@ -151,18 +182,33 @@ export default function Home({ onMovieSelect }) {
           onChange={handleSearchChange}
           style={inputStyle}
         />
-        <select
-          value={genreFilter}
-          onChange={handleGenreChange}
-          style={selectStyle}
-        >
-          <option value="">All Genres</option>
-          {genres.map(g => (
-          <option key={g} value={g}>{g}</option>
-          ))}
-        </select>
+        {/* NEW (TEMP?): multi-select genre "dropdown"*/}
+        <details>
+          <summary style={{ cursor: 'pointer', userSelect: 'none' }}>
+            {selectedLabel} ▾
+            </summary>
+            {/*Menu body: can change around (add max height?) - vertical list*/}
+            <div style={{ textAlign: 'left', marginTop: '0.5rem' }}>
+              {genres.map(g => (
+                <label key={g} style={{ display: 'block', margin: '0.25rem 0' }}>
+                  <input
+                      type="checkbox"
+                      checked={selectedGenres.includes(g)}
+                      onChange={() => toggleGenre(g)}
+                      />{' '}
+                      {g}
+                      </label>
+                    ))}
+                    {/*Clear button*/}
+                    {selectedGenres.length > 0 && (
+                      <button type="button" onClick={clearGenres} style={{ marginTop: '0.5rem' }}>
+                        Clear
+                      </button>
+                    )}
+              </div>
+          </details>    
       </div>
-
+      <h1 style={headingStyle}>Currently Running</h1>
       {/* Grid for currently running movies */}
       <div style={gridStyle}>
         {currentlyRunning.map((movie) => (
