@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     user_id BIGINT UNSIGNED NOT NULL,
     screening_id BIGINT UNSIGNED NOT NULL,
     booking_number CHAR(12) NOT NULL UNIQUE, -- generated booking reference
+    payment_card_id BIGINT UNSIGNED NULL, -- added payment card to booking
     promotion_id BIGINT UNSIGNED NULL,
     subtotal_cost INT UNSIGNED NOT NULL, -- total of ticket prices in cents
     fees_cost INT UNSIGNED NOT NULL, -- online booking fees in cents
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_b_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
     CONSTRAINT fk_b_screening FOREIGN KEY (screening_id) REFERENCES screenings(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_b_card FOREIGN KEY (payment_card_id) REFERENCES payment_cards(id) ON DELETE SET NULL,
     CONSTRAINT fk_b_promo FOREIGN KEY (promotion_id) REFERENCES promotions(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
@@ -46,3 +48,62 @@ CREATE INDEX idx_bookings_screening ON bookings (screening_id);
 CREATE INDEX idx_bookings_created ON bookings (created_at);
 CREATE INDEX idx_tickets_screening ON tickets (screening_id);
 CREATE INDEX idx_tickets_booking ON tickets (booking_id);
+
+-- seat avalability 
+DROP TRIGGER IF EXISTS trg_tickets_after_insert;
+DROP TRIGGER IF EXISTS trg_tickets_after_delete;
+DROP TRIGGER IF EXISTS trg_tickets_after_update;
+DELIMITER $$
+CREATE TRIGGER trg_tickets_after_insert
+AFTER INSERT ON tickets
+FOR EACH ROW
+BEGIN
+  UPDATE screenings
+     SET available_seats = GREATEST(0, available_seats - 1)
+   WHERE id = NEW.screening_id;
+END$$
+
+CREATE TRIGGER trg_tickets_after_delete
+AFTER DELETE ON tickets
+FOR EACH ROW
+BEGIN
+  UPDATE screenings
+     SET available_seats = available_seats + 1
+   WHERE id = OLD.screening_id;
+END$$
+
+CREATE TRIGGER trg_tickets_after_update
+AFTER UPDATE ON tickets
+FOR EACH ROW
+BEGIN
+  IF OLD.screening_id <> NEW.screening_id THEN
+    UPDATE screenings SET available_seats = available_seats + 1 WHERE id = OLD.screening_id;
+    UPDATE screenings SET available_seats = GREATEST(0, available_seats - 1) WHERE id = NEW.screening_id;
+  END IF;
+END$$
+DELIMITER ;
+
+-- refund deadline
+DROP TRIGGER IF EXISTS trg_bookings_before_insert;
+DROP TRIGGER IF EXISTS trg_bookings_before_update;
+DELIMITER $$
+CREATE TRIGGER trg_bookings_before_insert
+BEFORE INSERT ON bookings
+FOR EACH ROW
+BEGIN
+    DECLARE show_time DATETIME;
+    SELECT starts_at INTO show_time FROM screenings WHERE id = NEW.screening_id;
+    SET NEW.refund_deadline = DATE_SUB(show_time, INTERVAL 60 MINUTE);
+END$$
+
+CREATE TRIGGER trg_bookings_before_update
+BEFORE UPDATE ON bookings
+FOR EACH ROW
+BEGIN
+    DECLARE show_time DATETIME;
+    IF NEW.screening_id <> OLD.screening_id THEN
+        SELECT starts_at INTO show_time FROM screenings WHERE id = NEW.screening_id;
+        SET NEW.refund_deadline = DATE_SUB(show_time, INTERVAL 60 MINUTE);
+    END IF;
+END$$
+DELIMITER ;
