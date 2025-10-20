@@ -33,7 +33,7 @@ export default function App() {
   const handleGoBackFromBooking = () => setCurrentPage('movie-detail');
 
   // Function to go to the Registration page 
-  const handleGoToRegister = () => setCurrentPage('register');
+  const handleGoToRegister = () => setCurrentPage('registration');
 
   // Function to go back from the registration page to the home page. 
   const handleGoBackFromRegistration = () => setCurrentPage('home');
