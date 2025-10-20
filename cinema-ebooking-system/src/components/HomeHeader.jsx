@@ -35,7 +35,7 @@ export default function HomeHeader({ onRegisterClick }) {
     fontSize: '0.9rem',
     fontWeight: '500',
   };
-  // ------------------------------------
+  
 
   return (
     <header style={headerStyle}>
