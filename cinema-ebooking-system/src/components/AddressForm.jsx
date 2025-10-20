@@ -3,7 +3,7 @@ import React from 'react';
 // This component receives the address state object and its setter function
 export default function AddressForm({ address, setAddress }) {
 
-  // A single handler to update the correct piece of address state
+  // A handler to update the correct piece of address state
   const handleChange = (e) => {
     const { name, value } = e.target;
     setAddress(prevAddress => ({
@@ -12,7 +12,7 @@ export default function AddressForm({ address, setAddress }) {
     }));
   };
 
-  // --- STYLES ---
+  // CSS style guide (integrated into file instead of seperate file)
   const addressFormStyle = {
     display: 'flex',
     flexDirection: 'column',
@@ -33,8 +33,9 @@ export default function AddressForm({ address, setAddress }) {
     borderRadius: '4px',
     boxSizing: 'border-box',
   };
-  // --- END OF STYLES ---
+  // End of css styles
 
+  // Rendering
   return (
     <div style={addressFormStyle}>
       <label style={labelStyle}>Street Address</label>
