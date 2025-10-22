@@ -29,8 +29,9 @@ public class Movie {
     @Column(columnDefinition = "TEXT")
     private String synopsis;            
 
-    // DB has ENUM('G','PG','PG-13','R','NR') we'll keep it simple as string first
-    private String rating;              // ENUM in DB -> String in app (fine for v1)
+    // changed from string with db update
+    @Column(name = "rating_id")
+    private Integer ratingId;            
 
     @Column(name = "trailer_url")
     private String trailerUrl;          
@@ -81,9 +82,9 @@ public class Movie {
     public String getSynopsis() { return synopsis; }
     public void setSynopsis(String synopsis) { this.synopsis = synopsis; }
 
-    public String getRating() { return rating; }
-    public void setRating(String rating) { this.rating = rating; }
-
+    public Integer getRatingId() { return ratingId; }
+    public void setRatingId(Integer ratingId) { this.ratingId = ratingId; }
+    
     public String getTrailerUrl() { return trailerUrl; }
     public void setTrailerUrl(String trailerUrl) { this.trailerUrl = trailerUrl; }
 
