@@ -1,6 +1,6 @@
 package com.cinema.backend.repository;
 
-package com.cinema.backend.model.UserType;
+import com.cinema.backend.model.UserType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 

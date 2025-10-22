@@ -1,6 +1,6 @@
-package com.cinema.backend.repository;;
+package com.cinema.backend.repository;
 
-package com.cinema.backend.model.UserStatus;
+import com.cinema.backend.model.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
