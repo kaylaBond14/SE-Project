@@ -37,6 +37,12 @@ public class User {
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified = false;
 
+    @Column(name = "reset_token", nullable = false, length = 255)
+    private String resetToken;
+
+    @Column(name = "verification_token", nullable = false, length = 255)
+    private String verificationToken;
+
     @Column(name = "account_suspended", nullable = false)
     private boolean accountSuspended = false;
 
@@ -78,6 +84,12 @@ public class User {
 
     public boolean isVerified() { return isVerified; }
     public void setVerified(boolean isVerified) { this.isVerified = isVerified; }
+
+    public String getResetToken() { return resetToken; }
+    public void setResetToken(String resetToken) { this.resetToken = resetToken; }
+
+    public String getVerificationToken() { return verificationToken; }
+    public void setVerificationToken(String verificationToken) { this.verificationToken = verificationToken; }
 
     public boolean isAccountSuspended() { return accountSuspended; }
     public void setAccountSuspended(boolean accountSuspended) { this.accountSuspended = accountSuspended; }
