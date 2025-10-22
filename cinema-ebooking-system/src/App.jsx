@@ -3,6 +3,7 @@ import HomeHeader from "./components/HomeHeader.jsx";
 import Home from "./components/Homepage.jsx";
 import MovieDetail from "./components/MovieDetail.jsx";
 import Booking from "./components/Booking.jsx";
+import Registration from "./components/Registration.jsx";
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
@@ -31,6 +32,12 @@ export default function App() {
   // Function to go back from the booking page to the movie detail page.
   const handleGoBackFromBooking = () => setCurrentPage('movie-detail');
 
+  // Function to go to the Registration page 
+  const handleGoToRegister = () => setCurrentPage('registration');
+
+  // Function to go back from the registration page to the home page. 
+  const handleGoBackFromRegistration = () => setCurrentPage('home');
+
   // This function decides which page to render based on the current state.
   const renderPage = () => {
     if (currentPage === 'home') {
@@ -51,6 +58,13 @@ export default function App() {
           onGoBack={handleGoBackFromBooking}
         />
       );
+    } else if (currentPage === 'registration') {
+      return (
+        <Registration
+          onGoBack={handleGoBackFromRegistration}
+        />
+
+      )
     }
   };
 
@@ -63,7 +77,7 @@ export default function App() {
 
   return (
     <div style={appStyle}>
-      <HomeHeader />
+      <HomeHeader onRegisterClick={handleGoToRegister}/>
       {/* The renderPage() function call determines which page is displayed to the user. */}
       {renderPage()}
     </div>
