@@ -59,7 +59,7 @@ public class User {
     public void setEmail(String email) { this.email = email; }
 
     public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String password) { this.password = passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }  
