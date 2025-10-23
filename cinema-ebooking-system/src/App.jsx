@@ -138,7 +138,10 @@ export default function App() {
 
   return (
     <div style={appStyle}>
-      <HomeHeader onRegisterClick={handleGoToRegister}/>
+      <HomeHeader 
+        onRegisterClick={handleGoToRegister}
+        onProfileClick={handleGoToProfile}
+        />
       {/* The renderPage() function call determines which page is displayed to the user. */}
       {renderPage()}
     </div>
