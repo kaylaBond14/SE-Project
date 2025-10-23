@@ -19,7 +19,7 @@ export default function HomeHeader({ onRegisterClick, onProfileClick }) {
     margin: 0, // Added to remove default h1 margin
   };
 
-  // --- NEW STYLES FOR THE BUTTONS ---
+  // Styles
   const navContainerStyle = {
     display: 'flex',
     gap: '1rem',
