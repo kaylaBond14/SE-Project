@@ -4,6 +4,35 @@ import Home from "./components/Homepage.jsx";
 import MovieDetail from "./components/MovieDetail.jsx";
 import Booking from "./components/Booking.jsx";
 import Registration from "./components/Registration.jsx";
+import EditProfile from './components/EditProfile.jsx';
+
+// This object simulates the data we get from our database for the logged-in user
+// Hardcoded until we can access the database. 
+const mockUserData = {
+  id: 'u123',
+  firstName: 'Jane',
+  lastName: 'Doe',
+  email: 'jane.doe@example.com',
+  phone: '555-123-4567',
+  homeAddress: {
+    street: '123 Main St',
+    city: 'Anytown',
+    state: 'CA',
+    zip: '12345',
+  },
+  paymentInfo: {
+    cardType: 'visa',
+    cardNumber: '************1111',
+    expDate: '12/26',
+    billingAddress: {
+      street: '123 Main St',
+      city: 'Anytown',
+      state: 'CA',
+      zip: '12345',
+    },
+  },
+  wantsPromotions: true,
+};
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
