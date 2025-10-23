@@ -1,0 +1,117 @@
+/* ---- Login Page Styling ---- */
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1a237e, #0d47a1, #1976d2);
+  background-size: 400% 400%;
+  animation: gradientShift 12s ease infinite;
+  color: white;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.login-card {
+  background-color: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  padding: 40px 30px;
+  width: 360px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.login-title {
+  margin-bottom: 20px;
+  font-size: 32px;
+  color: #fff;
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  text-align: left;
+  font-size: 14px;
+  margin: 10px 0 4px 2px;
+  color: #e0e0e0;
+}
+
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  margin-bottom: 14px;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #000;
+  font-size: 15px;
+}
+
+.options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.forgot-link {
+  color: #bbdefb;
+  text-decoration: none;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  background-color: #1565c0;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.login-btn:hover {
+  background-color: #0d47a1;
+}
+
+.signup-text {
+  font-size: 14px;
+  margin-top: 18px;
+  color: #e0e0e0;
+}
+
+.signup-link {
+  color: #bbdefb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.signup-link:hover {
+  text-decoration: underline;
+}
+
+.error-text {
+  color: #ff5252;
+  font-size: 14px;
+  margin-bottom: 10px;
+}

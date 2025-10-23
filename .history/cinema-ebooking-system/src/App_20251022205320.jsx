@@ -7,8 +7,8 @@ import MovieDetail from "./components/MovieDetail.jsx";
 import Booking from "./components/Booking.jsx";
 
 import Login from './components/Login';
-import ForgotPassword from './components/forgotpassword';
-import Signup from './components/signup';
+import ForgotPassword from './components/ForgotPassword';
+import Signup from './components/Signup';
 
 const AdminDashboard = () => (
   <div className="flex justify-center items-center h-screen">
