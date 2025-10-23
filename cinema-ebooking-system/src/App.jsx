@@ -4,6 +4,35 @@ import Home from "./components/Homepage.jsx";
 import MovieDetail from "./components/MovieDetail.jsx";
 import Booking from "./components/Booking.jsx";
 import Registration from "./components/Registration.jsx";
+import EditProfile from './components/EditProfile.jsx';
+
+// This object simulates the data we get from our database for the logged-in user
+// Hardcoded until we can access the database. 
+const mockUserData = {
+  id: 'u123',
+  firstName: 'Jane',
+  lastName: 'Doe',
+  email: 'jane.doe@example.com',
+  phone: '555-123-4567',
+  homeAddress: {
+    street: '123 Main St',
+    city: 'Anytown',
+    state: 'CA',
+    zip: '12345',
+  },
+  paymentInfo: {
+    cardType: 'visa',
+    cardNumber: '************1111',
+    expDate: '12/26',
+    billingAddress: {
+      street: '123 Main St',
+      city: 'Anytown',
+      state: 'CA',
+      zip: '12345',
+    },
+  },
+  wantsPromotions: true,
+};
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
@@ -11,6 +40,10 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
+
+  // State for login
+  // Mock to test edit profile (until Login is implemented)
+  const [currentUser, setCurrentUser] = useState(mockUserData);
 
   // Function to handle a movie being selected on the home page.
   // It updates the state to show the Movie Detail page.
@@ -38,6 +71,27 @@ export default function App() {
   // Function to go back from the registration page to the home page. 
   const handleGoBackFromRegistration = () => setCurrentPage('home');
 
+  // Function to go to edit profile page
+  const handleGoToProfile = () => setCurrentPage('edit-profile');
+
+  // Function to go back to home page from edit profile page. 
+  const handleGoBackFromProfile = () => setCurrentPage('home');
+
+  // LOGIN Handlers will go here!
+
+  // Handled updated data
+  // This is simulated locally right now, will need to change once DB connection is set.
+  const handleProfileUpdate = (updatedData) => {
+    // In this version, we just update our local mock user state
+    console.log('Profile updated!', updatedData);
+    setCurrentUser(prevUser => ({
+      ...prevUser,
+      ...updatedData,
+    }));
+    alert('Profile Saved!');
+    setCurrentPage('home');
+  };
+
   // This function decides which page to render based on the current state.
   const renderPage = () => {
     if (currentPage === 'home') {
@@ -63,8 +117,15 @@ export default function App() {
         <Registration
           onGoBack={handleGoBackFromRegistration}
         />
-
-      )
+      );
+    } else if (currentPage == 'edit-profile') {
+      return (
+        <EditProfile 
+          user={currentUser} 
+          onGoBack={handleGoBackFromProfile}
+          onSave={handleProfileUpdate}
+        />
+      );
     }
   };
 
@@ -77,7 +138,10 @@ export default function App() {
 
   return (
     <div style={appStyle}>
-      <HomeHeader onRegisterClick={handleGoToRegister}/>
+      <HomeHeader 
+        onRegisterClick={handleGoToRegister}
+        onProfileClick={handleGoToProfile}
+        />
       {/* The renderPage() function call determines which page is displayed to the user. */}
       {renderPage()}
     </div>

@@ -1,10 +1,12 @@
 import React from 'react';
 
-// This component receives the address state object and its setter function
-export default function AddressForm({ address, setAddress }) {
+// Accept a new prop, 'readOnly', with a default value of false
+export default function AddressForm({ address, setAddress, readOnly = false }) {
 
-  // A handler to update the correct piece of address state
   const handleChange = (e) => {
+    // If it's read-only, do nothing on change
+    if (readOnly) return; 
+    
     const { name, value } = e.target;
     setAddress(prevAddress => ({
       ...prevAddress,
@@ -12,7 +14,7 @@ export default function AddressForm({ address, setAddress }) {
     }));
   };
 
-  // CSS style guide (integrated into file instead of seperate file)
+  // Styles
   const addressFormStyle = {
     display: 'flex',
     flexDirection: 'column',
@@ -33,47 +35,65 @@ export default function AddressForm({ address, setAddress }) {
     borderRadius: '4px',
     boxSizing: 'border-box',
   };
-  // End of css styles
+  
+  // Add a new style for read-only inputs
+  const inputReadOnlyStyle = {
+    ...inputStyle,
+    backgroundColor: '#4f4f4f',
+    color: '#aaa',
+    cursor: 'not-allowed',
+  };
+  
+  //  Decide which style to use
+  const activeInputStyle = readOnly ? inputReadOnlyStyle : inputStyle;
+  // End of styles
 
-  // Rendering
   return (
     <div style={addressFormStyle}>
       <label style={labelStyle}>Street Address</label>
       <input 
-        style={inputStyle}
+        style={activeInputStyle} //  Use the active style
         type="text" 
         name="street"
         value={address.street} 
         onChange={handleChange}
+        readOnly={readOnly} // Add the readOnly HTML attribute
+        disabled={readOnly} // Add disabled to prevent focus/clicks
       />
       
       <label style={labelStyle}>City</label>
       <input 
-        style={inputStyle}
+        style={activeInputStyle}
         type="text" 
         name="city"
         value={address.city} 
         onChange={handleChange}
+        readOnly={readOnly}
+        disabled={readOnly}
       />
       
       <label style={labelStyle}>State</label>
       <input 
-        style={inputStyle}
+        style={activeInputStyle}
         type="text" 
         name="state"
         value={address.state} 
         onChange={handleChange}
-        maxLength="2" // State abbreviations
+        maxLength="2"
+        readOnly={readOnly}
+        disabled={readOnly}
       />
       
       <label style={labelStyle}>Zip Code</label>
       <input 
-        style={inputStyle}
+        style={activeInputStyle}
         type="text" 
         name="zip"
         value={address.zip} 
         onChange={handleChange}
         maxLength="5"
+        readOnly={readOnly}
+        disabled={readOnly}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Accept the onRegisterClick prop from App.jsx
-export default function HomeHeader({ onRegisterClick }) {
+export default function HomeHeader({ onRegisterClick, onProfileClick }) {
   const headerStyle = {
     backgroundColor: '#1a1a1a', // Dark header background
     color: 'white',
@@ -19,7 +19,7 @@ export default function HomeHeader({ onRegisterClick }) {
     margin: 0, // Added to remove default h1 margin
   };
 
-  // --- NEW STYLES FOR THE BUTTONS ---
+  // Styles
   const navContainerStyle = {
     display: 'flex',
     gap: '1rem',
@@ -50,6 +50,13 @@ export default function HomeHeader({ onRegisterClick }) {
           onClick={onRegisterClick} // Prop comes from app.jsx
         >
           Register
+        </button>
+        {/* Edit Profile button */}
+        <button 
+          style={buttonStyle}
+          onClick={onProfileClick}
+        >
+          My Profile
         </button>
       </div>
     </header>
