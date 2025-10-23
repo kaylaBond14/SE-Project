@@ -21,7 +21,6 @@ public class UserStatus {
     public UserStatus(String statusName, String description) {
         this.statusName = statusName;
         this.description = description;
-        
     }
 
     // getters/setters
