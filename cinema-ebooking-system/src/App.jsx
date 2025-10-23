@@ -41,6 +41,10 @@ export default function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
+  // State for login
+  // Mock to test edit profile (until Login is implemented)
+  const [currentUser, setCurrentUser] = useState(mockUserData);
+
   // Function to handle a movie being selected on the home page.
   // It updates the state to show the Movie Detail page.
   const handleMovieSelect = (movie) => {
@@ -67,6 +71,27 @@ export default function App() {
   // Function to go back from the registration page to the home page. 
   const handleGoBackFromRegistration = () => setCurrentPage('home');
 
+  // Function to go to edit profile page
+  const handleGoToProfile = () => setCurrentPage('edit-profile');
+
+  // Function to go back to home page from edit profile page. 
+  const handleGoBackFromProfile = () => setCurrentPage('home');
+
+  // LOGIN Handlers will go here!
+
+  // Handled updated data
+  // This is simulated locally right now, will need to change once DB connection is set.
+  const handleProfileUpdate = (updatedData) => {
+    // In this version, we just update our local mock user state
+    console.log('Profile updated!', updatedData);
+    setCurrentUser(prevUser => ({
+      ...prevUser,
+      ...updatedData,
+    }));
+    alert('Profile Saved!');
+    setCurrentPage('home');
+  };
+
   // This function decides which page to render based on the current state.
   const renderPage = () => {
     if (currentPage === 'home') {
@@ -92,8 +117,15 @@ export default function App() {
         <Registration
           onGoBack={handleGoBackFromRegistration}
         />
-
-      )
+      );
+    } else if (currentPage == 'edit-profile') {
+      return (
+        <EditProfile 
+          user={currentUser} 
+          onGoBack={handleGoBackFromProfile}
+          onSave={handleProfileUpdate}
+        />
+      );
     }
   };
 
