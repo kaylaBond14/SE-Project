@@ -4,7 +4,8 @@ import AddressForm from './AddressForm.jsx';
 
 export default function Registration({ onGoBack }) {
   // State for required fields
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -47,7 +48,8 @@ export default function Registration({ onGoBack }) {
     }
     
     const registrationData = {
-      name,
+      firstName,
+      lastName,
       email,
       phone,
       password,
@@ -181,8 +183,10 @@ export default function Registration({ onGoBack }) {
         {/* --- Required Info --- */}
         <fieldset style={fieldsetStyle}>
           <legend style={legendStyle}>Required Information</legend>
-          <label style={labelStyle}>Full Name</label>
-          <input style={inputStyle} type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+          <label style={labelStyle}>First Name</label>
+          <input style={inputStyle} type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+          <label style={labelStyle}>Last Name</label>
+          <input style={inputStyle} type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
           
           <label style={labelStyle}>Email</label>
           <input style={inputStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

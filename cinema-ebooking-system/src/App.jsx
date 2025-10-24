@@ -70,7 +70,7 @@ export default function App() {
   // This 'useEffect' hook runs automatically whenever 'currentUserId' changes.
   useEffect(() => { 
     // If we have a user ID (from login), fetch their profile. 
-    if (currentUserId) { // NEW
+    if (currentUserId) { 
       fetchUserProfile(currentUserId); 
     } 
   }, [currentUserId]); // The "dependency array": runs when this value changes 
