@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import AddressForm from './AddressForm.jsx'; 
 
-
 export default function Registration({ onGoBack }) {
   // State for required fields
-  const [firstName, setFirstName] = useState('');
+  const [firstName, setFirstName] = useState(''); 
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -25,10 +24,10 @@ export default function Registration({ onGoBack }) {
   // State to show/hide optional payment
   const [showPayment, setShowPayment] = useState(false);
 
-  // --- Payment State ---
+  // Payment State 
   const [cardType, setCardType] = useState('visa');
   const [cardNumber, setCardNumber] = useState('');
-  const [expDate, setExpDate] = useState('');
+  const [expDate, setExpDate] = useState(''); // This will be "MM/YY"
   
   // State for billing address
   const [billingAddress, setBillingAddress] = useState({
@@ -40,43 +39,112 @@ export default function Registration({ onGoBack }) {
   // State to check if billing is same as home
   const [billingSameAsHome, setBillingSameAsHome] = useState(false);
 
-  const handleSubmit = (e) => {
+  //Helper function to format address for the API
+  const formatAddressForAPI = (addr) => {
+    if (!addr.street || !addr.city || !addr.state || !addr.zip) {
+      return null; // Don't send incomplete address
+    }
+    return {
+      label: "Home",
+      street: addr.street,
+      city: addr.city,
+      state: addr.state,
+      postalCode: addr.zip, // Map zip to postalCode
+     country: "USA", 
+    };
+  };
+
+  //  handleSubmit is now async and calls the API 
+  const handleSubmit = async (e) => { 
     e.preventDefault();
     if (password !== confirmPassword) {
       alert("Passwords don't match!");
       return;
     }
+
+    // Validate payment info if it's being added
+    let paymentCardPayload = null;
+    if (showPayment) {
+      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expDate)) { // Regex for MM/YY
+        alert("Please enter the expiration date in MM/YY format.");
+        return;
+      }
+
+      const [month, year] = expDate.split('/');
+      const formattedBillingAddress = formatAddressForAPI(
+        billingSameAsHome ? homeAddress : billingAddress
+      );
+
+      if (!formattedBillingAddress) {
+        alert("Please fill out the billing address completely.");
+        return;
+      }
+
+      paymentCardPayload = {
+        brand: cardType, // Map cardType to brand
+        cardNumber: cardNumber,
+        expMonth: month,
+        expYear: `20${year}`, // Convert "25" to "2025"
+        billingAddress: formattedBillingAddress,
+      };
+    }
     
-    const registrationData = {
+    // This is the payload 'RegisterRequest' DTO is expecting
+    const registrationPayload = {
       firstName,
       lastName,
       email,
       phone,
       password,
-      homeAddress,
-      wantsPromotions,
-      paymentInfo: showPayment ? {
-        cardType,
-        cardNumber,
-        expDate,
-        billingAddress: billingSameAsHome ? homeAddress : billingAddress,
-      } : null,
+      promoOptIn: wantsPromotions,
+      
+      // Send formatted address (will be null if not filled)
+      address: formatAddressForAPI(homeAddress),
+
+      // Send formatted card (will be null if not adding)
+      card: [paymentCardPayload], 
     };
-    console.log('Registering user:', registrationData);
-    alert('Registration successful! (Check the console)');
     
-    onGoBack();
+    //  remove the address/payment fields if they are null
+    // don't send empty objects to the backend.
+    if (!registrationPayload.address) delete registrationPayload.address;
+    if (!registrationPayload.card) delete registrationPayload.card;
+
+    try { 
+      console.log('Registering user with payload:', registrationPayload);
+      
+      // Call 'POST /api/register' endpoint
+      const response = await fetch('/api/register', { 
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json', 
+        }, 
+        body: JSON.stringify(registrationPayload), 
+      }); 
+
+      if (response.status === 201) { 
+        // Success!
+        alert('Registration successful! Please check your email to verify your account.'); 
+        onGoBack(); // Go back to the home page
+      } else { 
+        // Handle errors from the server (e.g., "Email already in use")
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed.');
+      } 
+
+    } catch (error) { 
+      console.error('Registration Error:', error); 
+      alert(`Registration failed: ${error.message}`); 
+    } 
   };
 
   // --- STYLES ---
-  
   const registrationContainerStyle = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     padding: '2rem',
   };
-
   const registrationFormStyle = {
     backgroundColor: '#3a3a3a',
     padding: '2rem',
@@ -87,12 +155,10 @@ export default function Registration({ onGoBack }) {
     flexDirection: 'column',
     gap: '1.5rem',
   };
-
   const formTitleStyle = {
     textAlign: 'center',
     marginTop: 0,
   };
-
   const fieldsetStyle = {
     border: '1px solid #555',
     borderRadius: '4px',
@@ -101,17 +167,10 @@ export default function Registration({ onGoBack }) {
     flexDirection: 'column',
     gap: '0.5rem',
   };
-
-  const legendStyle = {
-    padding: '0 0.5rem',
-    color: '#c7c7c7',
-  };
-
   const labelStyle = {
     fontWeight: 'bold',
     marginBottom: '-5px',
   };
-
   const inputStyle = {
     width: '100%',
     padding: '0.75rem',
@@ -119,25 +178,21 @@ export default function Registration({ onGoBack }) {
     backgroundColor: '#2c2c2c',
     color: 'white',
     borderRadius: '4px',
-    boxSizing: 'border-box', // Important for 100% width
+    boxSizing: 'border-box',
   };
-
   const formGroupCheckboxStyle = {
     display: 'flex',
     alignItems: 'center',
     gap: '0.5rem',
   };
-
   const checkboxInputStyle = {
     width: '16px',
     height: '16px',
   };
-
   const checkboxLabelStyle = {
     fontWeight: 'normal',
     margin: 0,
   };
-  
   const paymentDetailsStyle = {
     display: 'flex',
     flexDirection: 'column',
@@ -146,23 +201,20 @@ export default function Registration({ onGoBack }) {
     paddingTop: '1rem',
     borderTop: '1px dashed #555',
   };
-  
   const formButtonsStyle = {
     display: 'flex',
     gap: '1rem',
     justifyContent: 'flex-end',
   };
-  
   const btnSubmitStyle = {
     padding: '0.75rem 1.5rem',
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
     fontWeight: 'bold',
-    backgroundColor: '#646cff', // Blue
+    backgroundColor: '#646cff',
     color: 'white',
   };
-  
   const btnBackStyle = {
     padding: '0.75rem 1.5rem',
     border: 'none',
@@ -172,7 +224,6 @@ export default function Registration({ onGoBack }) {
     backgroundColor: '#555',
     color: 'white',
   };
-
   // --- END OF STYLES ---
 
   return (
@@ -183,8 +234,10 @@ export default function Registration({ onGoBack }) {
         {/* --- Required Info --- */}
         <fieldset style={fieldsetStyle}>
           <legend style={legendStyle}>Required Information</legend>
+          
           <label style={labelStyle}>First Name</label>
           <input style={inputStyle} type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+          
           <label style={labelStyle}>Last Name</label>
           <input style={inputStyle} type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
           
@@ -233,7 +286,6 @@ export default function Registration({ onGoBack }) {
             <label style={checkboxLabelStyle} htmlFor="show-payment">Add a payment method now?</label>
           </div>
 
-          {/* This part only appears if the checkbox is checked */}
           {showPayment && (
             <div style={paymentDetailsStyle}>
               <label style={labelStyle}>Card Type</label>
@@ -247,6 +299,7 @@ export default function Registration({ onGoBack }) {
               <input style={inputStyle} type="text" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
               
               <label style={labelStyle}>Expiration Date (MM/YY)</label>
+              {/* placeholder */}
               <input style={inputStyle} type="text" value={expDate} onChange={(e) => setExpDate(e.target.value)} placeholder="MM/YY" />
               
               <h4 style={{ margin: '1rem 0 0.5rem 0' }}>Billing Address</h4>
@@ -269,7 +322,7 @@ export default function Registration({ onGoBack }) {
           )}
         </fieldset>
 
-        {/* --- Form Buttons --- */}
+        {/*Form Buttons */}
         <div style={formButtonsStyle}>
           <button type="submit" style={btnSubmitStyle}>Create Account</button>
           <button type="button" style={btnBackStyle} onClick={onGoBack}>Back</button>
@@ -278,3 +331,4 @@ export default function Registration({ onGoBack }) {
     </div>
   );
 }
+
