@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import AddressForm from './AddressForm.jsx'; // We will use this in Step 4
+import AddressForm from './AddressForm.jsx'; 
 
-// Accept the onGoBack prop
+
 export default function Registration({ onGoBack }) {
   // State for required fields
   const [name, setName] = useState('');
