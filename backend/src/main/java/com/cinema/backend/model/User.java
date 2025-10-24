@@ -37,10 +37,11 @@ public class User {
     @Column(name = "is_verified", nullable = false)
     private boolean isVerified = false;
 
-    @Column(name = "reset_token", nullable = false, length = 255)
+    // nullable = true because it's possible for a user to not have a token
+    @Column(name = "reset_token", nullable = true, length = 255)
     private String resetToken;
 
-    @Column(name = "verification_token", nullable = false, length = 255)
+    @Column(name = "verification_token", nullable = true, length = 255)
     private String verificationToken;
 
     @Column(name = "account_suspended", nullable = false)
