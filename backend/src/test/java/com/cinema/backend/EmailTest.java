@@ -14,6 +14,7 @@ public class EmailTest {
     private EmailService emailService;
     
     private String email = "cinemaebookingteam2@gmail.com";
+    //private String email = "nathanhienn@gmail.com";
     
     @Test
     public void test() {
