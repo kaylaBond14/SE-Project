@@ -111,7 +111,7 @@ public class UserService {
         users.save(user);
     }
 
-        public User register(RegisterRequest req) {
+    public User register(RegisterRequest req) {
         if (userRepository.existsByEmail(req.email())) {
             throw new IllegalArgumentException("Email already in use");
         }
