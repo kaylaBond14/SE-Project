@@ -1,5 +1,8 @@
 package com.cinema.backend.dto;
 
+import jakarta.validation.Valid;
+import java.util.List;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -9,22 +12,22 @@ import jakarta.validation.constraints.Size;
  * and avoid changing fields.
  * Models what frntend send to /auth/register
  */
-public class RegisterRequest {
+public record RegisterRequest (
 
-    @Email @NotBlank //must be valid and not empty
-    private String email;
+    @Email @NotBlank String email,
 
-    //TODO
-    @NotBlank @Size(min=8) //Secure?? check password qualificatons
-    private String password;
+    @NotBlank @Size(min=8) String password,
 
-    @NotBlank
-    public String firstName;
+    @NotBlank String firstName,
 
-    @NotBlank
-    public String lastName;
+    @NotBlank String lastName,
 
-    //OPTIONAl
-    public Boolean promoOptIn;
+    String phone,
 
-}
+    Boolean promoOptIn,
+
+    @Valid AddressRequest address,
+
+    @Valid List<CardRequest> cards
+
+) {}
