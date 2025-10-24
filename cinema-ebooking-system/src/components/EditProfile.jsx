@@ -6,14 +6,15 @@ export default function EditProfile({ user, onGoBack, onSave }) {
   // Initialize state from the 'user' prop
   const [firstName, setFirstName] = useState(user.firstName);
   const [lastName, setLastName] = useState(user.lastName);
-
-  const [phone, setPhone] = useState(user.phone); 
-
-  const [homeAddress, setHomeAddress] = useState(user.homeAddress);
-
+  const [phone, setPhone] = useState(user.phone);
+  
+  const [homeAddress, setHomeAddress] = useState(user.homeAddress || { street: '', city: '', state: '', zip: '' });
+  
+  const [currentPassword, setCurrentPassword] = useState(''); 
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [wantsPromotions, setWantsPromotions] = useState(user.wantsPromotions);
+  
+  const [wantsPromotions, setWantsPromotions] = useState(user.promoOptIn);
   
   // Payment state
   const [showPayment, setShowPayment] = useState(!!user.paymentInfo); 
@@ -27,35 +28,41 @@ export default function EditProfile({ user, onGoBack, onSave }) {
   });
 
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e) => { 
     e.preventDefault();
     
-    if (newPassword && newPassword !== confirmNewPassword) {
-      alert("New passwords don't match!");
-      return;
+    if (newPassword && newPassword !== confirmNewPassword) { 
+      alert("New passwords don't match!"); 
+      return; 
     }
     
-    
-    const updatedData = {
-      firstName,
-      lastName,
+    if (newPassword && !currentPassword) { 
+      alert("Please enter your current password to change it."); 
+      return; 
+    }
+
+    // This object contains ALL data from the form
+    const updatedData = { 
+      firstName, 
+      lastName, 
       phone, 
+      promoOptIn: wantsPromotions, 
+      currentPassword: currentPassword, 
+      newPassword: newPassword, 
       homeAddress, 
-      wantsPromotions,
-      ...(newPassword && { password: newPassword }),
-      paymentInfo: showPayment ? {
-        cardType,
-        cardNumber,
-        expDate,
-        billingAddress: billingAddress,
-      } : user.paymentInfo, 
+      paymentInfo: showPayment ? { 
+        cardType, 
+        cardNumber, 
+        expDate, 
+        billingAddress: billingAddress, 
+      } : null,  
     };
     
-    onSave(updatedData);
+    // Send all data to App.jsx for processing
+    onSave(updatedData); 
   };
 
-  // Styles are the same as registration form
-  
+  // --- STYLES ---
   const registrationContainerStyle = {
     display: 'flex',
     justifyContent: 'center',
@@ -87,12 +94,6 @@ export default function EditProfile({ user, onGoBack, onSave }) {
     flexDirection: 'column',
     gap: '0.5rem',
   };
-
-  const legendStyle = {
-    padding: '0 0.5rem',
-    color: '#c7c7c7',
-  };
-
   const labelStyle = {
     fontWeight: 'bold',
     marginBottom: '-5px',
@@ -107,14 +108,12 @@ export default function EditProfile({ user, onGoBack, onSave }) {
     borderRadius: '4px',
     boxSizing: 'border-box',
   };
-  
-  const inputReadOnlyStyle = {
-    ...inputStyle,
+  const inputReadOnlyStyle = { 
+    ...inputStyle, 
     backgroundColor: '#4f4f4f', 
-    color: '#aaa',
-    cursor: 'not-allowed',
-  };
-
+    color: '#aaa', 
+    cursor: 'not-allowed', 
+  }; 
   const formGroupCheckboxStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -152,7 +151,7 @@ export default function EditProfile({ user, onGoBack, onSave }) {
     borderRadius: '4px',
     cursor: 'pointer',
     fontWeight: 'bold',
-    backgroundColor: '#646cff', // Blue
+    backgroundColor: '#646cff',
     color: 'white',
   };
   
@@ -165,7 +164,7 @@ export default function EditProfile({ user, onGoBack, onSave }) {
     backgroundColor: '#555',
     color: 'white',
   };
-  //  end of styles
+  // --- END OF STYLES ---
 
   return (
     <div style={registrationContainerStyle}>
@@ -178,14 +177,8 @@ export default function EditProfile({ user, onGoBack, onSave }) {
           <label style={labelStyle}>Email (Cannot be changed)</label>
           <input style={inputReadOnlyStyle} type="email" value={user.email} readOnly disabled />
           
-          
           <label style={labelStyle}>Phone</label>
-          <input 
-            style={inputStyle} 
-            type="tel" 
-            value={phone} 
-            onChange={(e) => setPhone(e.target.value)} 
-          />
+          <input style={inputStyle} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
           
           <label style={labelStyle}>First Name</label>
           <input style={inputStyle} type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
@@ -194,18 +187,26 @@ export default function EditProfile({ user, onGoBack, onSave }) {
           <input style={inputStyle} type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
         </fieldset>
         
-        
         <fieldset style={fieldsetStyle}>
           <legend style={legendStyle}>Home Address</legend>
           <AddressForm 
             address={homeAddress} 
             setAddress={setHomeAddress} 
-            readOnly={false} // Set to false
+            readOnly={false}
           />
         </fieldset>
 
         <fieldset style={fieldsetStyle}>
           <legend style={legendStyle}>Change Password (Optional)</legend>
+          
+          <label style={labelStyle}>Current Password</label>
+          <input 
+            style={inputStyle} 
+            type="password" 
+            value={currentPassword} 
+            onChange={(e) => setCurrentPassword(e.target.value)} 
+          /> 
+          
           <label style={labelStyle}>New Password</label>
           <input style={inputStyle} type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
           
@@ -229,7 +230,6 @@ export default function EditProfile({ user, onGoBack, onSave }) {
 
         <fieldset style={fieldsetStyle}>
           <legend style={legendStyle}>Payment Information</legend>
-        
           <div style={formGroupCheckboxStyle}>
             <input 
               style={checkboxInputStyle}
@@ -249,15 +249,12 @@ export default function EditProfile({ user, onGoBack, onSave }) {
                 <option value="mastercard">Mastercard</option>
                 <option value="amex">American Express</option>
               </select>
-              
               <label style={labelStyle}>Card Number</label>
               <input style={inputStyle} type="text" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
-              
               <label style={labelStyle}>Expiration Date (MM/YY)</label>
               <input style={inputStyle} type="text" value={expDate} onChange={(e) => setExpDate(e.target.value)} placeholder="MM/YY" />
               
               <h4 style={{ margin: '1rem 0 0.5rem 0' }}>Billing Address</h4>
-              
               <AddressForm 
                 address={billingAddress} 
                 setAddress={setBillingAddress} 
@@ -275,3 +272,4 @@ export default function EditProfile({ user, onGoBack, onSave }) {
     </div>
   );
 }
+

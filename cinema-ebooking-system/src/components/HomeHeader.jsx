@@ -1,30 +1,32 @@
 import React from 'react';
-
-// Accept the onRegisterClick prop from App.jsx
-export default function HomeHeader({ onRegisterClick, onProfileClick }) {
+export default function HomeHeader({ 
+  isLoggedIn, 
+  onLoginClick, 
+  onLogoutClick, 
+  onRegisterClick,
+  onProfileClick 
+}) {
+  
+  // Styles
   const headerStyle = {
-    backgroundColor: '#1a1a1a', // Dark header background
+    backgroundColor: '#1a1a1a', 
     color: 'white',
-    padding: '1rem 2rem', // Added more horizontal padding
+    padding: '1rem 2rem', 
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     display: 'flex',
-    justifyContent: 'space-between', // Changed from 'center'
-    alignItems: 'center', // Added to vertically center items
-    borderBottom: '4px solid #cc0000', // Red accent
+    justifyContent: 'space-between',
+    alignItems: 'center', 
+    borderBottom: '4px solid #cc0000',
   };
-
   const headerTitleStyle = {
     fontSize: '1.875rem',
     fontWeight: '700',
-    margin: 0, // Added to remove default h1 margin
+    margin: 0, 
   };
-
-  // Styles
   const navContainerStyle = {
     display: 'flex',
     gap: '1rem',
   };
-
   const buttonStyle = {
     background: 'none',
     border: '1px solid white',
@@ -35,29 +37,47 @@ export default function HomeHeader({ onRegisterClick, onProfileClick }) {
     fontSize: '0.9rem',
     fontWeight: '500',
   };
-  
+  // end of styles
 
   return (
     <header style={headerStyle}>
       <h1 style={headerTitleStyle}>Cinema System</h1>
 
-      {/* Container for Register Button (Will implement into login later) */}
+      {/*This navigation container is now fully dynamic */}
       <div style={navContainerStyle}>
-        
-        {/* Register button */}
-        <button 
-          style={buttonStyle}
-          onClick={onRegisterClick} // Prop comes from app.jsx
-        >
-          Register
-        </button>
-        {/* Edit Profile button */}
-        <button 
-          style={buttonStyle}
-          onClick={onProfileClick}
-        >
-          My Profile
-        </button>
+        {isLoggedIn ? ( 
+          // SHOW THESE BUTTONS IF LOGGED IN (TRIAL FOR LOGIN STUFF)
+          <> 
+            <button  
+              style={buttonStyle} 
+              onClick={onProfileClick} 
+            > 
+              My Profile
+            </button> 
+            <button 
+              style={buttonStyle}
+              onClick={onLogoutClick} 
+            > 
+              Logout
+            </button> 
+          </> 
+        ) : ( 
+          //SHOW THESE BUTTONS IF LOGGED OUT 
+          <> 
+            <button 
+              style={buttonStyle} 
+              onClick={onLoginClick} 
+            > 
+              Login
+            </button> 
+            <button 
+              style={buttonStyle}
+              onClick={onRegisterClick} 
+            >
+              Register
+            </button>
+          </> 
+        )} 
       </div>
     </header>
   );

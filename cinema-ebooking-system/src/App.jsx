@@ -1,38 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // NEW (added useEffect)
 import HomeHeader from "./components/HomeHeader.jsx";
 import Home from "./components/Homepage.jsx";
 import MovieDetail from "./components/MovieDetail.jsx";
 import Booking from "./components/Booking.jsx";
 import Registration from "./components/Registration.jsx";
 import EditProfile from './components/EditProfile.jsx';
-
-// This object simulates the data we get from our database for the logged-in user
-// Hardcoded until we can access the database. 
-const mockUserData = {
-  id: 'u123',
-  firstName: 'Jane',
-  lastName: 'Doe',
-  email: 'jane.doe@example.com',
-  phone: '555-123-4567',
-  homeAddress: {
-    street: '123 Main St',
-    city: 'Anytown',
-    state: 'CA',
-    zip: '12345',
-  },
-  paymentInfo: {
-    cardType: 'visa',
-    cardNumber: '************1111',
-    expDate: '12/26',
-    billingAddress: {
-      street: '123 Main St',
-      city: 'Anytown',
-      state: 'CA',
-      zip: '12345',
-    },
-  },
-  wantsPromotions: true,
-};
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
@@ -41,12 +13,12 @@ export default function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
-  // State for login
-  // Mock to test edit profile (until Login is implemented)
-  const [currentUser, setCurrentUser] = useState(mockUserData);
+  // TRIAL! State for Login 
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [currentUserId, setCurrentUserId] = useState(null); 
+  const [currentUser, setCurrentUser] = useState(null); // (was previously set to mockUserData)
 
-  // Function to handle a movie being selected on the home page.
-  // It updates the state to show the Movie Detail page.
+  
   const handleMovieSelect = (movie) => {
     setSelectedMovie(movie);
     setCurrentPage('movie-detail');
@@ -77,20 +49,144 @@ export default function App() {
   // Function to go back to home page from edit profile page. 
   const handleGoBackFromProfile = () => setCurrentPage('home');
 
-  // LOGIN Handlers will go here!
-
-  // Handled updated data
-  // This is simulated locally right now, will need to change once DB connection is set.
-  const handleProfileUpdate = (updatedData) => {
-    // In this version, we just update our local mock user state
-    console.log('Profile updated!', updatedData);
-    setCurrentUser(prevUser => ({
-      ...prevUser,
-      ...updatedData,
-    }));
-    alert('Profile Saved!');
-    setCurrentPage('home');
+  // TRIAL! LOGIN Handlers
+  // This is a temporary function to simulate a user logging in.
+  // The real login page will set these states.
+  const handleLogin = () => { 
+    setIsLoggedIn(true); 
+    setCurrentUserId(1); // SIMULATING LOGIN FOR USER ID 1 
+    setCurrentPage('home'); 
+    alert('Simulated login for User 1. Fetching profile...'); 
   };
+
+  // This logs the user out and clears their data
+  const handleLogout = () => { 
+    setIsLoggedIn(false); 
+    setCurrentUser(null); 
+    setCurrentUserId(null); 
+    setCurrentPage('home'); 
+  };
+
+  // This 'useEffect' hook runs automatically whenever 'currentUserId' changes.
+  useEffect(() => { 
+    // If we have a user ID (from login), fetch their profile. 
+    if (currentUserId) { 
+      fetchUserProfile(currentUserId); 
+    } 
+  }, [currentUserId]); // The "dependency array": runs when this value changes 
+
+  // This function calls GET /api/users/{id}/profile endpoint
+  const fetchUserProfile = async (id) => { 
+    try { 
+      const response = await fetch(`/api/users/${id}/profile`); 
+      if (!response.ok) { 
+        throw new Error('Failed to fetch user profile.'); 
+      } 
+      const userData = await response.json(); 
+      
+      //  API returns user data, but not address or payment.
+      //  add mock data for those parts so the form doesn't break.
+      const fullUserData = { 
+        ...userData, 
+        // TODO: Replace with real data when you have address/payment APIs 
+        homeAddress: { street: '456 Oak Ave', city: 'Othertown', state: 'NY', zip: '54321' }, 
+        paymentInfo: { cardType: 'mastercard', cardNumber: '************5555', expDate: '11/25' }, 
+      }; 
+
+      setCurrentUser(fullUserData); 
+      console.log('Fetched user profile:', fullUserData); 
+
+    } catch (error) { 
+      console.error('Error fetching profile:', error); 
+      alert('Could not load user profile.'); 
+    } 
+  }; 
+
+  
+  // MODIFIED: This function now calls  backend API controllers.
+  const handleProfileUpdate = async (updatedData) => { //(added async)
+    if (!currentUser) return; //(Safety check)
+    
+    const id = currentUser.id; 
+    let updateFailed = false; 
+
+    // Update Basic Info (firstName, lastName, phone, promoOptIn) 
+    // This creates an object that matches  'UpdateUserRequest' DTO 
+    const basicsToUpdate = { 
+      firstName: updatedData.firstName,
+      lastName: updatedData.lastName, 
+      phone: updatedData.phone, 
+      promoOptIn: updatedData.promoOptIn, 
+    }; 
+
+    try { 
+      console.log('Updating basic info:', basicsToUpdate); 
+      //  call  PATCH endpoint 
+      const response = await fetch(`/api/users/${id}`, { 
+        method: 'PATCH', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(basicsToUpdate), 
+      }); 
+      if (!response.ok) throw new Error('Failed to update basic info.'); 
+    } catch (error) { 
+      console.error(error); 
+      alert('Error saving profile changes. Please try again.'); 
+      updateFailed = true; 
+    } 
+
+    // Update Password (if provided)
+    // This runs only if the user entered a new password and the first update succeeded
+    if (!updateFailed && updatedData.newPassword) { 
+      // This creates an object that matches  'ChangePasswordRequest' DTO 
+      const passwordRequest = { 
+        currentPassword: updatedData.currentPassword, 
+        newPassword: updatedData.newPassword, 
+      }; 
+
+      try { 
+        console.log('Changing password...'); 
+        // call  POST endpoint for changing password 
+        const response = await fetch(`/api/users/${id}/change-password`, { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify(passwordRequest), 
+        }); 
+        
+        if (!response.ok) { 
+          // Get the specific error message from the backend (invaild password)
+          const errorMsg = await response.text(); 
+          throw new Error(errorMsg || 'Failed to change password.'); 
+        } 
+      } catch (error) { 
+        console.error(error); 
+        alert(`Error changing password: ${error.message}`); 
+        updateFailed = true; 
+      } 
+    } 
+    
+    // IMPLEMENT LATER- Nothing in contoller for this.
+    // Update Address & Payment
+    // Will need to build controllers for these in your backend 
+    /* 
+    if (!updateFailed && updatedData.homeAddress) { 
+      // const res = await fetch(`/api/users/${id}/address`, { ... }); 
+      console.log('TODO: Save this address:', updatedData.homeAddress); 
+    } 
+    
+    if (!updateFailed && updatedData.paymentInfo) { 
+      // const res = await fetch(`/api/users/${id}/payment`, { ... }); 
+      console.log('TODO: Save this payment:', updatedData.paymentInfo); 
+    } 
+    */ 
+
+    //  Refetch data & go home 
+    if (!updateFailed) { 
+      alert('Profile Saved!'); 
+      fetchUserProfile(id); // Re-fetch the user to get the confirmed changes 
+      setCurrentPage('home'); 
+    } 
+  };
+
 
   // This function decides which page to render based on the current state.
   const renderPage = () => {
@@ -119,6 +215,14 @@ export default function App() {
         />
       );
     } else if (currentPage == 'edit-profile') {
+      // A loading check 
+      // If the user is logged in but haven't fetched their data yet
+      if (!currentUser) { 
+        // Show a loading message
+        return <div style={{ padding: '2rem' }}>Loading profile...</div>; 
+      } 
+      
+      // Once 'currentUser' is fetched, render the form
       return (
         <EditProfile 
           user={currentUser} 
@@ -139,6 +243,9 @@ export default function App() {
   return (
     <div style={appStyle}>
       <HomeHeader 
+        isLoggedIn={isLoggedIn} 
+        onLoginClick={handleLogin}
+        onLogoutClick={handleLogout} 
         onRegisterClick={handleGoToRegister}
         onProfileClick={handleGoToProfile}
         />
@@ -147,3 +254,4 @@ export default function App() {
     </div>
   );
 }
+
