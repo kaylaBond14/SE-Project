@@ -78,23 +78,44 @@ export default function App() {
   // This function calls GET /api/users/{id}/profile endpoint
   const fetchUserProfile = async (id) => { 
     try { 
-      const response = await fetch(`/api/users/${id}/profile`); 
-      if (!response.ok) { 
-        throw new Error('Failed to fetch user profile.'); 
-      } 
-      const userData = await response.json(); 
+      // Fetch User Basics
+      const userResponse = await fetch(`/api/users/${id}/profile`); 
+      if (!userResponse.ok) throw new Error('Failed to fetch user profile.'); 
+      const userData = await userResponse.json(); 
+
+      // Fetch User Address (if it exists)
+      let addressData = null;
+      try {
+        const addressResponse = await fetch(`/api/users/${id}/address`);
+        if (addressResponse.ok) {
+          addressData = await addressResponse.json();
+        }
+      } catch (e) {
+        console.log("User has no address yet.");
+      }
+
+      // Fetch User Cards (if they exist)
+      let cardsData = [];
+      try {
+        const cardsResponse = await fetch(`/api/users/${id}/cards`);
+        if (cardsResponse.ok) {
+          cardsData = await cardsResponse.json();
+        }
+      } catch (e) {
+        console.log("User has no payment cards yet.");
+      }
       
+      // Combine all data into one user object
       //  API returns user data, but not address or payment.
       //  add mock data for those parts so the form doesn't break.
       const fullUserData = { 
         ...userData, 
-        // TODO: Replace with real data when you have address/payment APIs 
-        homeAddress: { street: '456 Oak Ave', city: 'Othertown', state: 'NY', zip: '54321' }, 
-        paymentInfo: { cardType: 'mastercard', cardNumber: '************5555', expDate: '11/25' }, 
+        address: addressData,     // This will be an object or null
+        paymentCards: cardsData,  // This will be an array
       }; 
 
       setCurrentUser(fullUserData); 
-      console.log('Fetched user profile:', fullUserData); 
+      console.log('Fetched full user profile:', fullUserData); 
 
     } catch (error) { 
       console.error('Error fetching profile:', error); 
@@ -102,8 +123,22 @@ export default function App() {
     } 
   }; 
 
+  // Helper function to format address for the API
+  const formatAddressForAPI = (addr) => {
+    if (!addr.street || !addr.city || !addr.state || !addr.zip) {
+      return null;
+    }
+    return {
+      label: "Home",
+      street: addr.street,
+      city: addr.city,
+      state: addr.state,
+      postalCode: addr.zip,
+      country: "USA",
+    };
+  };
   
-  // MODIFIED: This function now calls  backend API controllers.
+  // This function now calls  backend API controllers.
   const handleProfileUpdate = async (updatedData) => { //(added async)
     if (!currentUser) return; //(Safety check)
     
@@ -164,20 +199,96 @@ export default function App() {
       } 
     } 
     
-    // IMPLEMENT LATER- Nothing in contoller for this.
-    // Update Address & Payment
-    // Will need to build controllers for these in your backend 
-    /* 
-    if (!updateFailed && updatedData.homeAddress) { 
-      // const res = await fetch(`/api/users/${id}/address`, { ... }); 
-      console.log('TODO: Save this address:', updatedData.homeAddress); 
-    } 
+    //  API logic for Address
+    if (!updateFailed && updatedData.homeAddress) {
+      const formattedAddress = formatAddressForAPI(updatedData.homeAddress);
+      if (formattedAddress) {
+        try {
+          let addressEndpoint = `/api/users/${id}/address`;
+          let addressMethod = 'POST'; // Assume we are creating
+          
+          // If user already had an address, we PATCH (update) it
+          if (currentUser.address && currentUser.address.id) {
+            addressEndpoint = `/api/users/${id}/address/${currentUser.address.id}`;
+            addressMethod = 'PATCH';
+          }
+
+          console.log(`Sending address via ${addressMethod} to ${addressEndpoint}`);
+          const response = await fetch(addressEndpoint, {
+            method: addressMethod,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formattedAddress),
+          });
+          if (!response.ok) throw new Error('Failed to save home address.');
+
+        } catch (error) {
+          console.error(error);
+          alert('Error saving home address.');
+          updateFailed = true;
+        }
+      }
+    }
     
-    if (!updateFailed && updatedData.paymentInfo) { 
-      // const res = await fetch(`/api/users/${id}/payment`, { ... }); 
-      console.log('TODO: Save this payment:', updatedData.paymentInfo); 
-    } 
-    */ 
+    // Full API logic for Payment Card 
+    // This logic assumes we are only managing ONE card (the first in the list)
+    if (!updateFailed) {
+      const existingCard = currentUser.paymentCards ? currentUser.paymentCards[0] : null;
+      const userWantsToSaveCard = updatedData.paymentInfo;
+
+      try {
+        // Case 1: User wants to save (add/update) a card
+        if (userWantsToSaveCard) {
+          if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(updatedData.paymentInfo.expDate)) {
+             throw new Error("Please enter the expiration date in MM/YY format.");
+          }
+          const [month, year] = updatedData.paymentInfo.expDate.split('/');
+          const formattedBillingAddress = formatAddressForAPI(
+            updatedData.paymentInfo.billingAddress
+          );
+          if (!formattedBillingAddress) throw new Error("Please fill out billing address for card.");
+
+          const cardPayload = {
+            brand: updatedData.paymentInfo.cardType,
+            cardNumber: updatedData.paymentInfo.cardNumber,
+            expMonth: month,
+            expYear: `20${year}`,
+            billingAddress: formattedBillingAddress,
+          };
+          
+          let cardEndpoint = `/api/users/${id}/cards`;
+          let cardMethod = 'POST';
+
+          // If a card already exists, PATCH it
+          if (existingCard && existingCard.id) {
+            cardEndpoint = `/api/users/${id}/cards/${existingCard.id}`;
+            cardMethod = 'PATCH';
+          }
+          
+          console.log(`Sending card via ${cardMethod} to ${cardEndpoint}`);
+          const response = await fetch(cardEndpoint, {
+            method: cardMethod,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cardPayload),
+          });
+          if (!response.ok) throw new Error('Failed to save payment card.');
+
+        // Case 2: User unchecked the box, and a card *did* exist
+        } else if (!userWantsToSaveCard && existingCard) {
+          console.log(`Deleting card at /api/users/${id}/cards/${existingCard.id}`);
+          const response = await fetch(`/api/users/${id}/cards/${existingCard.id}`, {
+            method: 'DELETE'
+          });
+          if (!response.ok) throw new Error('Failed to delete payment card.');
+        }
+        // Case 3: User doesn't want card, and had no card. Do nothing.
+
+      } catch (error) {
+        console.error(error);
+        alert(error.message);
+        updateFailed = true;
+      }
+    }
+    
 
     //  Refetch data & go home 
     if (!updateFailed) { 
@@ -204,7 +315,7 @@ export default function App() {
       return (
         <Booking
           movie={selectedMovie}
-          showtime={selectedShowtime}
+          showtime={selectedShowtime} 
           onGoBack={handleGoBackFromBooking}
         />
       );
@@ -254,4 +365,3 @@ export default function App() {
     </div>
   );
 }
-
