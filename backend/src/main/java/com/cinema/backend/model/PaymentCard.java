@@ -34,7 +34,7 @@ public class PaymentCard {
 
     // Optional billing address reference
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "billing_address_id")
+    @JoinColumn(name = "billing_addr_id")
     private Address billingAddress;
 
     public PaymentCard() {}
