@@ -14,9 +14,12 @@ import com.cinema.backend.model.UserType;
 import com.cinema.backend.repository.AddressRepository;
 import com.cinema.backend.repository.PaymentCardRepository;
 import com.cinema.backend.repository.UserStatusRepository; 
-import com.cinema.backend.repository.UserTypeRepository;  
+import com.cinema.backend.repository.UserTypeRepository;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import java.util.List;
+import com.cinema.backend.services.EmailService;
 
 
 
@@ -34,6 +37,9 @@ public class UserService {
     private final PaymentCardRepository cardRepository;
     private final UserStatusRepository statusRepository;
     private final UserTypeRepository typeRepository;
+
+    @Autowired
+    private EmailService emailService;
 
 
     public UserService(
@@ -85,6 +91,7 @@ public class UserService {
             user.setPromoOptIn(promoOptIn);
         }
 
+        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
         return users.save(user);
     }
 
@@ -195,6 +202,7 @@ public class UserService {
         a.setState(req.state());
         a.setPostalCode(req.postalCode());
         a.setCountry(req.country() == null ? "USA" : req.country());
+        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
         return addressRepository.save(a);
     }
 
@@ -210,6 +218,7 @@ public class UserService {
         if (req.postalCode() != null) a.setPostalCode(req.postalCode());
         if (req.country() != null) a.setCountry(req.country());
 
+        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
         return addressRepository.save(a);
     }
 
@@ -234,6 +243,7 @@ public class UserService {
         if (req.billingAddrId() != null) {
             addressRepository.findById(req.billingAddrId()).ifPresent(pc::setBillingAddress);
         }
+        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
         return cardRepository.save(pc);
     }
 
@@ -247,6 +257,7 @@ public class UserService {
         if (req.billingAddrId() != null) {
             addressRepository.findById(req.billingAddrId()).ifPresent(pc::setBillingAddress);
         }
+        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
         return cardRepository.save(pc);
     }
 
@@ -255,6 +266,7 @@ public class UserService {
         PaymentCard pc = cardRepository.findById(cardId).orElseThrow(EntityNotFoundException::new);
         if (!pc.getUser().getId().equals(user.getId())) throw new IllegalArgumentException("Card not owned by user");
         cardRepository.delete(pc);
+        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
     }
 }
 

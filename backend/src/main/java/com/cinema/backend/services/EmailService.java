@@ -32,7 +32,7 @@ public class EmailService {
     }
 
     // General method used sending all types of emails
-    // (Verification emails, Forgot Password emails, Promo emails, ProfileEdit emails)
+    // (Verification emails, Forgot Password emails, Promo emails)
     private void sendEmail(String email, String token, String subject, String path, String message) {
         try {
             String actionUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
@@ -60,6 +60,30 @@ public class EmailService {
             helper.setText(content, true);
             mailSender.send(mimeMessage);
 
+        } catch (Exception e) {
+            System.err.println("Failed to send email: " + e.getMessage());
+        }
+    }
+
+    // Sends a "Profile Edited Notification" email with no attached link or tokens
+    public void sendProfileEditedEmail(String email) {
+        String subject = "Your Profile has been Changed";
+        String message = "Your account details have been edited. If you did not make these changes, please log in immediately and change your password.";
+        try {
+            String content = """
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background-color: #f9f9f9; text-align: center;">
+                        <h2 style="color: #333;">%s</h2>
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                        <p style="font-size: 12px; color: #aaa;">This is an automated message. Please do not reply.</p>
+                    </div>
+                """.formatted(subject, message);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            helper.setTo(email);
+            helper.setSubject(subject);
+            helper.setFrom(from);
+            helper.setText(content, true);
+            mailSender.send(mimeMessage);
         } catch (Exception e) {
             System.err.println("Failed to send email: " + e.getMessage());
         }

@@ -16,7 +16,7 @@ import com.cinema.backend.utils.JwtTokenUtil;
 import jakarta.persistence.EntityNotFoundException;
 
 @RestController
-@RequestMapping("/req/signup/verify")
+@RequestMapping("/req")
 public class VerificationController {
     
     @Autowired
@@ -28,7 +28,7 @@ public class VerificationController {
     @Autowired
     private JwtTokenUtil jwtUtil;
      
-    @GetMapping
+    @GetMapping("/signup/verify")
     public ResponseEntity verifyEmail(@RequestParam("token") String token) {
         String emailString = jwtUtil.extractEmail(token);
         User user = userService.getByEmail(emailString);
