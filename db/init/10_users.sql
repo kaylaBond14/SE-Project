@@ -25,8 +25,8 @@ CREATE TABLE IF NOT EXISTS users(
     status_id TINYINT UNSIGNED NOT NULL,
     user_type_id TINYINT UNSIGNED NOT NULL,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
-    reset_token VARCHAR(255), -- no NOT NULL b/c unverified users won't have tokens yet
-    verification_token VARCHAR(255), -- so it's possible for these columns to be empty
+    reset_token VARCHAR(255) NOT NULL,
+    verification_token VARCHAR(255) NOT NULL,
     account_suspended BOOLEAN NOT NULL DEFAULT FALSE, 
     promo_opt_in BOOLEAN NOT NULL DEFAULT TRUE, 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -32,7 +32,7 @@ public class VerificationController {
     public ResponseEntity verifyEmail(@RequestParam("token") String token) {
         String emailString = jwtUtil.extractEmail(token);
         User user = userService.getByEmail(emailString);
-        if (user == null || user.getVerificationToken() == null) {
+        if (user == null || user.getVerificationToken() == "pending") {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Token Expired!");
         }
         
