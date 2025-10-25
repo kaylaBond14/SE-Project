@@ -39,6 +39,13 @@ export default function Registration({ onGoBack }) {
   // State to check if billing is same as home
   const [billingSameAsHome, setBillingSameAsHome] = useState(false);
 
+  // --- FIX 1: Add the phone validation handler ---
+  const handlePhoneChange = (e) => {
+    // This removes any character that is not a digit
+    const digitsOnly = e.target.value.replace(/\D/g, '');
+    setPhone(digitsOnly);
+  };
+
   //Helper function to format address for the API
   const formatAddressForAPI = (addr) => {
     if (!addr.street || !addr.city || !addr.state || !addr.zip) {
@@ -101,20 +108,20 @@ export default function Registration({ onGoBack }) {
       // Send formatted address (will be null if not filled)
       address: formatAddressForAPI(homeAddress),
 
-      // Send formatted card (will be null if not adding)
-      card: [paymentCardPayload], 
+      // --- FIX 2: Corrected card payload logic ---
+      card: paymentCardPayload ? [paymentCardPayload] : null, 
     };
     
     //  remove the address/payment fields if they are null
     // don't send empty objects to the backend.
     if (!registrationPayload.address) delete registrationPayload.address;
-    if (!registrationPayload.card) delete registrationPayload.card;
+    if (!registrationPayload.card) delete registrationPayload.card; // This now works
 
     try { 
       console.log('Registering user with payload:', registrationPayload);
       
       // Call 'POST /api/register' endpoint
-      const response = await fetch('/api/register', { 
+      const response = await fetch('/api/users/api/register', { 
         method: 'POST', 
         headers: { 
           'Content-Type': 'application/json', 
@@ -166,6 +173,10 @@ export default function Registration({ onGoBack }) {
     display: 'flex',
     flexDirection: 'column',
     gap: '0.5rem',
+  };
+   const legendStyle = {
+    padding: '0 0.5rem',
+    color: '#c7c7c7',
   };
   const labelStyle = {
     fontWeight: 'bold',
@@ -245,7 +256,14 @@ export default function Registration({ onGoBack }) {
           <input style={inputStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           
           <label style={labelStyle}>Phone Number</label>
-          <input style={inputStyle} type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+          {/* --- FIX 1: Use the handlePhoneChange handler --- */}
+          <input 
+            style={inputStyle} 
+            type="tel" 
+            value={phone} 
+            onChange={handlePhoneChange} 
+            required 
+          />
           
           <label style={labelStyle}>Password</label>
           <input style={inputStyle} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
@@ -331,4 +349,3 @@ export default function Registration({ onGoBack }) {
     </div>
   );
 }
-
