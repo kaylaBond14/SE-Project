@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Login.css'; // 👈 add this line
 
-export default function Login({ onLoginSuccess, onGoForgot, onGoSignup }) {
+export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);

@@ -43,19 +43,12 @@ export default function App() {
   const handleGoBackFromProfile = () => setCurrentPage('home');
 
   // Simulated login/logout
-  // When Login button is clicked in header, go to login page
-const handleLoginClick = () => {
-  setCurrentPage('login');
-};
-
-// (Keep a separate actual login handler if you want to simulate login later)
-const handleFakeLogin = () => {
-  setIsLoggedIn(true);
-  setCurrentUserId(1);
-  setCurrentPage('home');
-  alert('Simulated login for User 1. Fetching profile...');
-};
-
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    setCurrentUserId(1);
+    setCurrentPage('home');
+    alert('Simulated login for User 1. Fetching profile...');
+  };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
@@ -183,21 +176,7 @@ const handleFakeLogin = () => {
           onSave={handleProfileUpdate}
         />
       );
-    } else if (currentPage === 'login') {
-      return <Login onLoginSuccess={handleFakeLogin} />;
-    } else if (currentPage === 'login') {
-  return (
-    <Login
-      onLoginSuccess={(role) =>
-        role === 'admin'
-          ? setCurrentPage('admin-dashboard')
-          : setCurrentPage('home')
-      }
-      onGoForgot={() => setCurrentPage('forgot-password')}
-      onGoSignup={() => setCurrentPage('registration')}
-    />
-  );
-}
+    }
   };
 
   const appStyle = {
@@ -211,7 +190,7 @@ const handleFakeLogin = () => {
     <div style={appStyle}>
       <HomeHeader
         isLoggedIn={isLoggedIn}
-        onLoginClick={handleLoginClick}
+        onLoginClick={handleLogin}
         onLogoutClick={handleLogout}
         onRegisterClick={handleGoToRegister}
         onProfileClick={handleGoToProfile}

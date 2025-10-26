@@ -185,19 +185,7 @@ const handleFakeLogin = () => {
       );
     } else if (currentPage === 'login') {
       return <Login onLoginSuccess={handleFakeLogin} />;
-    } else if (currentPage === 'login') {
-  return (
-    <Login
-      onLoginSuccess={(role) =>
-        role === 'admin'
-          ? setCurrentPage('admin-dashboard')
-          : setCurrentPage('home')
-      }
-      onGoForgot={() => setCurrentPage('forgot-password')}
-      onGoSignup={() => setCurrentPage('registration')}
-    />
-  );
-}
+    }
   };
 
   const appStyle = {
