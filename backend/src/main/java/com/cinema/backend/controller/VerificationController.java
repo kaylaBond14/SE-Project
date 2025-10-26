@@ -45,6 +45,24 @@ public class VerificationController {
         
         return ResponseEntity.status(HttpStatus.CREATED).body("Email successfully verified!");
     }
+
+    @GetMapping("/reset-password")
+    public ResponseEntity resetPassword(@RequestParam("token") String token, @RequestParam("newPassword") String newPassword) {
+        String emailString = jwtUtil.extractEmail(token);
+        User user = userService.getByEmail(emailString);
+        if (user == null || user.getResetToken() == "pending") {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Token Expired!");
+        }
+        
+        if (!jwtUtil.validateToken(token) || !user.getResetToken().equals(token)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Token Expired!");
+        }
+        user.setResetToken("pending");
+        user.setPasswordHash(newPassword); 
+        userRepository.save(user);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body("Your password has been reset! Please return to the Login page and use your new password to access your account.");
+    }
     
     
 }
