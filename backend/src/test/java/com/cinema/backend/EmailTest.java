@@ -31,13 +31,13 @@ public class EmailTest {
     @Test
     public void test() {
         // Create a new User object
-        /*
         RegisterRequest request = new RegisterRequest(email, "password", "Nathan", 
                                     "Nguyen", "4045434898", false, 
                                     null, null);
         userController.register(request);
+        /*
         // Edit Profile to add Address and Card info
-        Long id = Long.valueOf(3);
+        Long id = Long.valueOf(7);
         AddressRequest addrRequest = new AddressRequest("home", "2125 Plantation Land", 
                                     "Atlanta", "GA", "30341", "USA");
         String cardToken = JwtTokenUtil.generateToken(email);
@@ -66,9 +66,9 @@ public class EmailTest {
         userController.deleteCard(id, cardID);
         */
         // Generate token
-        String verificationToken = JwtTokenUtil.generateToken(email);
+        //String verificationToken = JwtTokenUtil.generateToken(email);
         // Send email
-        emailService.sendVerificationEmail(email, verificationToken);
+        //emailService.sendVerificationEmail(email, verificationToken);
     }
     /*
      * Notes:
@@ -80,5 +80,7 @@ public class EmailTest {
      * 4. Editing existing User, Address, and Card info using updateUser(), patchAddress()
      *    and patchCard() works
      * 5. setSuspended() and deleteCard() work
+     * 6. sendProfileEdited() email works and is attached to all respective edit() methods
+     * 7. VerificationController works, fully implemented with UserController.register()
      */
 }

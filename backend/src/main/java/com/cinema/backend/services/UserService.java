@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import java.util.List;
 import com.cinema.backend.services.EmailService;
+import com.cinema.backend.utils.JwtTokenUtil;
 
 
 
@@ -179,6 +180,11 @@ public class UserService {
                 }
             }
         }
+
+        // Send verification email
+        String verificationToken = JwtTokenUtil.generateToken(u.getEmail());
+        u.setVerificationToken(verificationToken);
+        emailService.sendVerificationEmail(u.getEmail(), verificationToken);
 
         return u;
     }

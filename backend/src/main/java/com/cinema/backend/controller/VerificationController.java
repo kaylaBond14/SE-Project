@@ -39,7 +39,7 @@ public class VerificationController {
         if (!jwtUtil.validateToken(token) || !user.getVerificationToken().equals(token)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Token Expired!");
         }
-        user.setVerificationToken(null);
+        user.setVerificationToken("verified");
         user.setVerified(true);  
         userRepository.save(user);
         

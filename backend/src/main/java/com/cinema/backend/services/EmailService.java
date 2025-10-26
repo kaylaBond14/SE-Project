@@ -36,6 +36,7 @@ public class EmailService {
     private void sendEmail(String email, String token, String subject, String path, String message) {
         try {
             String actionUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .port(8080)
                     .path(path)
                     .queryParam("token", token)
                     .toUriString();
