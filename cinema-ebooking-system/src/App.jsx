@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-
+import React, { useState, useEffect } from 'react';
 import HomeHeader from "./components/HomeHeader.jsx";
 import Home from "./components/Homepage.jsx";
 import MovieDetail from "./components/MovieDetail.jsx";
 import Booking from "./components/Booking.jsx";
-
+import Registration from "./components/Registration.jsx";
+import EditProfile from './components/EditProfile.jsx';
 import Login from './components/Login';
 import ForgotPassword from './components/forgotpassword';
 import Signup from './components/signup';
@@ -17,10 +16,14 @@ const AdminDashboard = () => (
 );
 
 export default function App() {
-  // ===== your existing local state =====
   const [currentPage, setCurrentPage] = useState('home');
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
+
+  // Auth and user state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const handleMovieSelect = (movie) => {
     setSelectedMovie(movie);
@@ -34,9 +37,115 @@ export default function App() {
 
   const handleGoBackFromDetail = () => setCurrentPage('home');
   const handleGoBackFromBooking = () => setCurrentPage('movie-detail');
+  const handleGoToRegister = () => setCurrentPage('registration');
+  const handleGoBackFromRegistration = () => setCurrentPage('home');
+  const handleGoToProfile = () => setCurrentPage('edit-profile');
+  const handleGoBackFromProfile = () => setCurrentPage('home');
 
-  // ===== function that renders Home / Movie / Booking =====
-  const renderHomeFlow = () => {
+  // Simulated login/logout
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    setCurrentUserId(1);
+    setCurrentPage('home');
+    alert('Simulated login for User 1. Fetching profile...');
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    setCurrentUserId(null);
+    setCurrentPage('home');
+  };
+
+  // Fetch user profile when logged in
+  useEffect(() => {
+    if (currentUserId) fetchUserProfile(currentUserId);
+  }, [currentUserId]);
+
+  const fetchUserProfile = async (id) => {
+    try {
+      const response = await fetch(`/api/users/${id}/profile`);
+      if (!response.ok) throw new Error('Failed to fetch user profile.');
+      const userData = await response.json();
+
+      const fullUserData = {
+        ...userData,
+        homeAddress: {
+          street: '456 Oak Ave',
+          city: 'Othertown',
+          state: 'NY',
+          zip: '54321',
+        },
+        paymentInfo: {
+          cardType: 'mastercard',
+          cardNumber: '************5555',
+          expDate: '11/25',
+        },
+      };
+      setCurrentUser(fullUserData);
+      console.log('Fetched user profile:', fullUserData);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      alert('Could not load user profile.');
+    }
+  };
+
+  const handleProfileUpdate = async (updatedData) => {
+    if (!currentUser) return;
+    const id = currentUser.id;
+    let updateFailed = false;
+
+    const basicsToUpdate = {
+      firstName: updatedData.firstName,
+      lastName: updatedData.lastName,
+      phone: updatedData.phone,
+      promoOptIn: updatedData.promoOptIn,
+    };
+
+    try {
+      console.log('Updating basic info:', basicsToUpdate);
+      const response = await fetch(`/api/users/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(basicsToUpdate),
+      });
+      if (!response.ok) throw new Error('Failed to update basic info.');
+    } catch (error) {
+      console.error(error);
+      alert('Error saving profile changes. Please try again.');
+      updateFailed = true;
+    }
+
+    if (!updateFailed && updatedData.newPassword) {
+      const passwordRequest = {
+        currentPassword: updatedData.currentPassword,
+        newPassword: updatedData.newPassword,
+      };
+      try {
+        const response = await fetch(`/api/users/${id}/change-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(passwordRequest),
+        });
+        if (!response.ok) {
+          const errorMsg = await response.text();
+          throw new Error(errorMsg || 'Failed to change password.');
+        }
+      } catch (error) {
+        console.error(error);
+        alert(`Error changing password: ${error.message}`);
+        updateFailed = true;
+      }
+    }
+
+    if (!updateFailed) {
+      alert('Profile Saved!');
+      fetchUserProfile(id);
+      setCurrentPage('home');
+    }
+  };
+
+  const renderPage = () => {
     if (currentPage === 'home') {
       return <Home onMovieSelect={handleMovieSelect} />;
     } else if (currentPage === 'movie-detail') {
@@ -55,39 +164,38 @@ export default function App() {
           onGoBack={handleGoBackFromBooking}
         />
       );
+    } else if (currentPage === 'registration') {
+      return <Registration onGoBack={handleGoBackFromRegistration} />;
+    } else if (currentPage === 'edit-profile') {
+      if (!currentUser)
+        return <div style={{ padding: '2rem' }}>Loading profile...</div>;
+      return (
+        <EditProfile
+          user={currentUser}
+          onGoBack={handleGoBackFromProfile}
+          onSave={handleProfileUpdate}
+        />
+      );
     }
   };
 
-  const appStyle = { 
+  const appStyle = {
     fontFamily: 'Arial, sans-serif',
     backgroundColor: '#2c2c2c',
     color: 'white',
     minHeight: '100vh',
   };
 
-  // ===== return block =====
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Login & Auth Routes */}
-        <Route path="/" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-
-        {/* Admin placeholder */}
-        <Route path="/admin" element={<AdminDashboard />} />
-
-        {/* Main movie-booking flow */}
-        <Route
-          path="/home"
-          element={
-            <div style={appStyle}>
-              <HomeHeader />
-              {renderHomeFlow()}
-            </div>
-          }
-        />
-      </Routes>
-    </BrowserRouter>
+    <div style={appStyle}>
+      <HomeHeader
+        isLoggedIn={isLoggedIn}
+        onLoginClick={handleLogin}
+        onLogoutClick={handleLogout}
+        onRegisterClick={handleGoToRegister}
+        onProfileClick={handleGoToProfile}
+      />
+      {renderPage()}
+    </div>
   );
 }

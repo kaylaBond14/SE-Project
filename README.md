@@ -1,3 +1,4 @@
 # SE-Project
 
-# This is Nathan, testing if changes I make are saved to GitHub
+# Movie E-Booking System
+# Find a movie, select a seat, buy a ticket, and enjoy the show!
