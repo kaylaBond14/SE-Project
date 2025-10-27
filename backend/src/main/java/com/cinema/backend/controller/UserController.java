@@ -10,6 +10,7 @@ import com.cinema.backend.dto.CardRequest;
 import com.cinema.backend.dto.CardResponse;
 import com.cinema.backend.dto.ChangePasswordRequest;
 import com.cinema.backend.dto.RegisterRequest;
+import com.cinema.backend.dto.ResetPasswordRequest;
 import com.cinema.backend.dto.UpdateUserRequest;
 import com.cinema.backend.services.UserService;
 
@@ -64,6 +65,19 @@ public class UserController {
     ) {
         try {
             userService.changePassword(id, req.currentPassword(), req.newPassword());
+            return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /** POST /api/users/reset-password — set password of account given the email and new desired password */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        try {
+            userService.resetPassword(req.email(), req.newPassword());
             return ResponseEntity.noContent().build();
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();

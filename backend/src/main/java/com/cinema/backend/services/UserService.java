@@ -108,6 +108,21 @@ public class UserService {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         users.save(user);
+        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
+    }
+
+    /**
+     * Reset password / Fogot password option
+     */
+    public void resetPassword(String email, String newPassword) {
+        User user = getByEmail(email);
+
+        String newEncodedPassword = passwordEncoder.encode(newPassword);
+        // Send Reset Passwork email
+        String resetToken = JwtTokenUtil.generateToken(user.getEmail());
+        user.setResetToken(resetToken);
+        emailService.sendForgotPasswordEmail(user.getEmail(), resetToken, newEncodedPassword);
+        users.save(user);
     }
 
     /**

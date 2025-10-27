@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import com.cinema.backend.services.EmailService;
 import com.cinema.backend.utils.JwtTokenUtil;
 import com.cinema.backend.dto.RegisterRequest;
+import com.cinema.backend.dto.ResetPasswordRequest;
 import com.cinema.backend.dto.UpdateUserRequest;
 import com.cinema.backend.dto.AddressRequest;
 import com.cinema.backend.dto.CardRequest;
@@ -65,10 +66,9 @@ public class EmailTest {
         userController.setSuspended(id, true);
         userController.deleteCard(id, cardID);
         */
-        // Generate token
-        //String verificationToken = JwtTokenUtil.generateToken(email);
-        // Send email
-        //emailService.sendVerificationEmail(email, verificationToken);
+        // Test "Forgot Password" functionality
+        ResetPasswordRequest resetReq = new ResetPasswordRequest(email, "superSecurePassword");
+        userController.resetPassword(resetReq);
     }
     /*
      * Notes:
@@ -82,5 +82,6 @@ public class EmailTest {
      * 5. setSuspended() and deleteCard() work
      * 6. sendProfileEdited() email works and is attached to all respective edit() methods
      * 7. VerificationController works, fully implemented with UserController.register()
+     * 8. UserController.resetPassword() works
      */
 }
