@@ -92,7 +92,8 @@ export default function Registration({ onGoBack }) {
         cardNumber: cardNumber,
         expMonth: month,
         expYear: `20${year}`, // Convert "25" to "2025"
-        billingAddress: formattedBillingAddress,
+        token: "pending",
+        billingAddress: null,
       };
     }
     
@@ -108,7 +109,6 @@ export default function Registration({ onGoBack }) {
       // Send formatted address (will be null if not filled)
       address: formatAddressForAPI(homeAddress),
 
-      // --- FIX 2: Corrected card payload logic ---
       card: paymentCardPayload ? [paymentCardPayload] : null, 
     };
     
@@ -121,7 +121,7 @@ export default function Registration({ onGoBack }) {
       console.log('Registering user with payload:', registrationPayload);
       
       // Call 'POST /api/register' endpoint
-      const response = await fetch('/api/users/api/register', { 
+      const response = await fetch('/api/users/register', { 
         method: 'POST', 
         headers: { 
           'Content-Type': 'application/json', 
