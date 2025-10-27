@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
+import com.cinema.backend.crypto.CryptoStringConverter;
+
 @Entity
 @Table(
     name = "payment_cards",
@@ -24,8 +26,9 @@ public class PaymentCard {
     private short expMonth;
     private short expYear;
 
-    @NotBlank
-    private String token; // token from payment provider, never raw PAN
+    @Convert(converter = CryptoStringConverter.class)
+    @Column(name = "token", nullable = false, length = 255)
+    private String token;
 
     // Each card belongs to one user
     @ManyToOne(fetch = FetchType.LAZY)
