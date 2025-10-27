@@ -176,25 +176,39 @@ public class UserService {
         }
 
         // optional cards (0..3)
-        if (req.cards() != null && !req.cards().isEmpty()) {
-            for (CardRequest c : req.cards()) {
-                PaymentCard pc = new PaymentCard();
-                pc.setUser(u);
-                pc.setBrand(c.brand());
-                pc.setLast4(c.last4());
-                pc.setExpMonth((short) c.expMonth());
-                pc.setExpYear((short) c.expYear());
-                pc.setToken(c.token());
-                if (c.billingAddrId() != null) {
-                    addressRepository.findById(c.billingAddrId()).ifPresent(pc::setBillingAddress);
-                }
-                try {
-                    cardRepository.save(pc);
-                } catch (DataIntegrityViolationException dive) {
-                    throw new IllegalArgumentException("Card limit exceeded (max 3).");
-                }
-            }
+if (req.cards() != null && !req.cards().isEmpty()) {
+    for (CardRequest c : req.cards()) {
+        if (cardRepository.countByUserId(u.getId()) >= 3) {
+            throw new IllegalArgumentException("Card limit exceeded (max 3).");
         }
+
+        String pan = normalizePan(c.token());  // token carries PAN 
+        assertValidPan(pan);
+        String last4 = pan.substring(pan.length() - 4);
+
+        PaymentCard pc = new PaymentCard();
+        pc.setUser(u);
+        pc.setBrand(c.brand());
+        pc.setLast4(last4);
+        pc.setExpMonth((short) c.expMonth());
+        pc.setExpYear((short) c.expYear());
+        pc.setToken(pan);                      // AES-GCM @Convert encrypts on save
+
+        if (c.billingAddrId() != null) {
+            addressRepository.findById(c.billingAddrId()).ifPresent(addr -> {
+                if (!addr.getUser().getId().equals(u.getId())) {
+                    throw new IllegalArgumentException("Billing address does not belong to user");
+                }
+                pc.setBillingAddress(addr);
+            });
+        } else {
+            // optional: auto-use the user's single address if one exists
+            addressRepository.findByUserId(u.getId()).ifPresent(pc::setBillingAddress);
+        }
+
+        cardRepository.save(pc);
+    }
+}
 
         // Send verification email
         String verificationToken = JwtTokenUtil.generateToken(u.getEmail());
@@ -244,29 +258,48 @@ public class UserService {
     }
 
     // Cards
+
+
     public List<PaymentCard> listCards(Long userId) {
         userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
         return cardRepository.findByUserId(userId);
     }
 
     public PaymentCard addCard(Long userId, CardRequest req) {
-        var user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
-        if (cardRepository.countByUserId(userId) >= 3) {
-            throw new IllegalArgumentException("Card limit exceeded (max 3).");
-        }
-        PaymentCard pc = new PaymentCard();
-        pc.setUser(user);
-        pc.setBrand(req.brand());
-        pc.setLast4(req.last4());
-        pc.setExpMonth((short) req.expMonth());
-        pc.setExpYear((short) req.expYear());
-        pc.setToken(req.token());
-        if (req.billingAddrId() != null) {
-            addressRepository.findById(req.billingAddrId()).ifPresent(pc::setBillingAddress);
-        }
-        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
-        return cardRepository.save(pc);
+    var user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
+
+    if (cardRepository.countByUserId(userId) >= 3) {
+        throw new IllegalArgumentException("Card limit exceeded (max 3).");
     }
+
+    String pan = normalizePan(req.token());   // token carries PAN
+    assertValidPan(pan);
+    String last4 = pan.substring(pan.length() - 4);
+
+    PaymentCard pc = new PaymentCard();
+    pc.setUser(user);
+    pc.setBrand(req.brand());
+    pc.setLast4(last4);
+    pc.setExpMonth((short) req.expMonth());
+    pc.setExpYear((short) req.expYear());
+    pc.setToken(pan);                         // encrypted by @Convert
+
+    if (req.billingAddrId() != null) {
+        addressRepository.findById(req.billingAddrId()).ifPresent(addr -> {
+            if (!addr.getUser().getId().equals(userId)) {
+                throw new IllegalArgumentException("Billing address does not belong to user");
+            }
+            pc.setBillingAddress(addr);
+        });
+    } else {
+        // optional: if user has a single address, use it by default
+        addressRepository.findByUserId(userId).ifPresent(pc::setBillingAddress);
+    }
+
+    emailService.sendProfileEditedEmail(user.getEmail());
+    return cardRepository.save(pc);
+}
+
 
     public PaymentCard patchCard(Long userId, Long cardId, CardRequest req) {
         var user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
@@ -289,6 +322,31 @@ public class UserService {
         cardRepository.delete(pc);
         emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
     }
+
+
+    //Card Helpers
+    private static String normalizePan(String s) {
+        if (s == null) return null;
+        return s.replaceAll("[^0-9]", ""); // drop spaces, dashes
+    }
+
+    private static void assertValidPan(String pan) {
+        if (pan == null) throw new IllegalArgumentException("Missing card number");
+        if (!pan.matches("\\d{12,19}")) throw new IllegalArgumentException("Invalid card number length");
+        if (!luhnOk(pan)) throw new IllegalArgumentException("Invalid card number (Luhn)");
+    }
+
+    private static boolean luhnOk(String num) {
+        int sum = 0; boolean alt = false;
+        for (int i = num.length() - 1; i >= 0; i--) {
+            int n = num.charAt(i) - '0';
+            if (alt) { n *= 2; if (n > 9) n -= 9; }
+            sum += n; alt = !alt;
+        }
+        return sum % 10 == 0;
+    }
+
+
 }
 
 
