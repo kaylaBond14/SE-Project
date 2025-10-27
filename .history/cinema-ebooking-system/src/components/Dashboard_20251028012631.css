@@ -1,0 +1,37 @@
+/* ===== Dashboard Section Styles (visible after login) ===== */
+
+.user-dashboard {
+  margin-top: 3rem;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  backdrop-filter: blur(6px);
+}
+
+.bookings-grid,
+.recs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.booking-card,
+.rec-card {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.booking-card h3,
+.rec-card h4 {
+  color: #fff;
+  margin-bottom: 0.3rem;
+}
+
+.rec-card img {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
