@@ -18,7 +18,7 @@ import com.cinema.backend.repository.UserTypeRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
-import com.cinema.backend.services.EmailService;
+//import com.cinema.backend.services.EmailService;
 import com.cinema.backend.utils.JwtTokenUtil;
 
 
@@ -186,8 +186,20 @@ public class UserService {
                 pc.setExpMonth((short) c.expMonth());
                 pc.setExpYear((short) c.expYear());
                 pc.setToken(pan);      // AES-GCM @Convert encrypts on save
+                
+                AddressRequest billingReq = c.addressReq();
+                if (savedAddress != null && billingReq != null && addressesEqual(billingReq, req.address())) {
+                    // billing is same as home → reuse the already-saved home row (no new insert)
+                    pc.setBillingAddress(savedAddress);
+                } else {
+                    // otherwise keep your current behavior (may create the address)
+                    pc.setBillingAddress(createAddress(u.getId(), billingReq));
+                }
 
-                pc.setBillingAddress(createAddress(u.getId(), c.addressReq()));
+            
+                //pc.setBillingAddress(createAddress(u.getId(), c.addressReq()));
+                
+
                 /*
                 if (c.billingAddrId() != null) {
                     addressRepository.findById(c.billingAddrId()).ifPresent(addr -> {
@@ -297,6 +309,22 @@ public class UserService {
     }
 
     //Helpers
+
+    private static boolean eq(String a, String b) {
+        return a != null && b != null && a.trim().equalsIgnoreCase(b.trim());
+    }   
+
+    private static boolean addressesEqual(AddressRequest a, AddressRequest b) {
+        if (a == null || b == null) return false;
+        return eq(a.street(), b.street())
+        && eq(a.city(), b.city())
+        && eq(a.state(), b.state())
+        && eq(a.postalCode(), b.postalCode())
+        && eq(a.country() == null ? "USA" : a.country(),
+              b.country() == null ? "USA" : b.country());
+    }
+
+
         /**
      * Ensures the user has ONE address row.
      * If one exists, update it. If not, create one.
@@ -357,7 +385,7 @@ public class UserService {
         //if (!luhnOk(pan)) throw new IllegalArgumentException("Invalid card number (Luhn)");
     }
 
-    private static boolean luhnOk(String num) {
+    /**private static boolean luhnOk(String num) {
         int sum = 0; boolean alt = false;
         for (int i = num.length() - 1; i >= 0; i--) {
             int n = num.charAt(i) - '0';
@@ -366,6 +394,7 @@ public class UserService {
         }
         return sum % 10 == 0;
     }
+        */
 
 
 }
