@@ -1,10 +1,19 @@
-import React, { useState, useEffect } from 'react'; // NEW (added useEffect)
+import React, { useState, useEffect } from 'react';
 import HomeHeader from "./components/HomeHeader.jsx";
 import Home from "./components/Homepage.jsx";
 import MovieDetail from "./components/MovieDetail.jsx";
 import Booking from "./components/Booking.jsx";
 import Registration from "./components/Registration.jsx";
 import EditProfile from './components/EditProfile.jsx';
+import Login from './components/Login.jsx'; 
+import ForgotPassword from './components/forgotpassword.jsx'; 
+
+// Component for the admin dashboard
+const AdminDashboard = () => (
+  <div style={{ padding: '2rem', textAlign: 'center' }}>
+    <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>Admin Dashboard</h1>
+  </div>
+);
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
@@ -13,10 +22,10 @@ export default function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
-  // TRIAL! State for Login 
-  const [isLoggedIn, setIsLoggedIn] = useState(false); 
-  const [currentUserId, setCurrentUserId] = useState(null); 
-  const [currentUser, setCurrentUser] = useState(null); // (was previously set to mockUserData)
+  // Auth and user state
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   
   const handleMovieSelect = (movie) => {
@@ -31,32 +40,31 @@ export default function App() {
     setCurrentPage('booking');
   };
 
-  // Function to go back to the home page from the movie detail page.
+  // Function to go back to the home page and vice versa.
   const handleGoBackFromDetail = () => setCurrentPage('home');
-  
-  // Function to go back from the booking page to the movie detail page.
   const handleGoBackFromBooking = () => setCurrentPage('movie-detail');
-
-  // Function to go to the Registration page 
   const handleGoToRegister = () => setCurrentPage('registration');
-
-  // Function to go back from the registration page to the home page. 
   const handleGoBackFromRegistration = () => setCurrentPage('home');
-
-  // Function to go to edit profile page
   const handleGoToProfile = () => setCurrentPage('edit-profile');
-
-  // Function to go back to home page from edit profile page. 
   const handleGoBackFromProfile = () => setCurrentPage('home');
 
-  // TRIAL! LOGIN Handlers
-  // This is a temporary function to simulate a user logging in.
-  // The real login page will set these states.
-  const handleLogin = () => { 
-    setIsLoggedIn(true); 
-    setCurrentUserId(1); // SIMULATING LOGIN FOR USER ID 1 
-    setCurrentPage('home'); 
-    alert('Simulated login for User 1. Fetching profile...'); 
+  // LOGIN HANDLERS 
+  // When Login button is clicked in header, go to login page
+  const handleLoginClick = () => {
+    setCurrentPage('login');
+  };
+
+  // This function is called by the Login component on a successful login
+  const handleLoginSuccess = (userData) => { // Expects { id, role }
+    setIsLoggedIn(true);
+    setCurrentUserId(userData.id); // This will trigger your profile fetch
+    
+    // Handle routing based on user role
+    if (userData.role === 'admin') {
+      setCurrentPage('admin-dashboard');
+    } else {
+      setCurrentPage('home');
+    }
   };
 
   // This logs the user out and clears their data
@@ -289,7 +297,6 @@ export default function App() {
       }
     }
     
-
     //  Refetch data & go home 
     if (!updateFailed) { 
       alert('Profile Saved!'); 
@@ -302,7 +309,13 @@ export default function App() {
   // This function decides which page to render based on the current state.
   const renderPage = () => {
     if (currentPage === 'home') {
-      return <Home onMovieSelect={handleMovieSelect} />;
+      return (
+        <Home 
+          onMovieSelect={handleMovieSelect}
+          isLoggedIn={isLoggedIn} // NEW
+          user={currentUser} // NEW
+        />
+      );
     } else if (currentPage === 'movie-detail') {
       return (
         <MovieDetail
@@ -341,6 +354,23 @@ export default function App() {
           onSave={handleProfileUpdate}
         />
       );
+    } else if (currentPage === 'login') {
+      return (
+        <Login
+          onLoginSuccess={handleLoginSuccess}
+          onGoForgot={() => setCurrentPage('forgot-password')}
+          onGoSignup={handleGoToRegister} // Re-uses your existing function
+        />
+      );
+    } else if (currentPage === 'forgot-password') {
+      return (
+        <ForgotPassword
+          onGoBack={() => setCurrentPage('login')} //Goes back to login page
+        />
+      );
+    } else if (currentPage === 'admin-dashboard') {
+      return <AdminDashboard />;
+ 
     }
   };
 
@@ -355,7 +385,7 @@ export default function App() {
     <div style={appStyle}>
       <HomeHeader 
         isLoggedIn={isLoggedIn} 
-        onLoginClick={handleLogin}
+        onLoginClick={handleLoginClick} // NEW
         onLogoutClick={handleLogout} 
         onRegisterClick={handleGoToRegister}
         onProfileClick={handleGoToProfile}

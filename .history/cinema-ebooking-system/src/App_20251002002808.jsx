@@ -1,0 +1,71 @@
+import React, { useState } from 'react';
+import HomeHeader from "./components/HomeHeader.jsx";
+import Home from "./components/Homepage.jsx";
+import MovieDetail from "./components/MovieDetail.jsx";
+import Booking from "./components/Booking.jsx";
+
+export default function App() {
+  // State to track the current page, selected movie, and selected showtime.
+  // This is a simple way to manage navigation without using a routing library.
+  const [currentPage, setCurrentPage] = useState('home');
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [selectedShowtime, setSelectedShowtime] = useState(null);
+
+  // Function to handle a movie being selected on the home page.
+  // It updates the state to show the Movie Detail page.
+  const handleMovieSelect = (movie) => {
+    setSelectedMovie(movie);
+    setCurrentPage('movie-detail');
+  };
+
+  // Function to handle a showtime being selected on the Movie Detail page.
+  // It updates the state to show the Booking page.
+  const handleShowtimeSelect = (showtime) => {
+    setSelectedShowtime(showtime);
+    setCurrentPage('booking');
+  };
+
+  // Function to go back to the home page from the movie detail page.
+  const handleGoBackFromDetail = () => setCurrentPage('home');
+  
+  // Function to go back from the booking page to the movie detail page.
+  const handleGoBackFromBooking = () => setCurrentPage('movie-detail');
+
+  // This function decides which page to render based on the current state.
+  const renderPage = () => {
+    if (currentPage === 'home') {
+      return <Home onMovieSelect={handleMovieSelect} />;
+    } else if (currentPage === 'movie-detail') {
+      return (
+        <MovieDetail
+          movie={selectedMovie}
+          onShowtimeSelect={handleShowtimeSelect}
+          onGoBack={handleGoBackFromDetail}
+        />
+      );
+    } else if (currentPage === 'booking') {
+      return (
+        <Booking
+          movie={selectedMovie}
+          showtime={selectedShowtime}
+          onGoBack={handleGoBackFromBooking}
+        />
+      );
+    }
+  };
+
+  const appStyle = { 
+    fontFamily: 'Arial, sans-serif',
+    backgroundColor: '#2c2c2c', // Dark background
+    color: 'white', // Light text
+    minHeight: '100vh',
+  };
+
+  return (
+    <div style={appStyle}>
+      <HomeHeader />
+      {/* The renderPage() function call determines which page is displayed to the user. */}
+      {renderPage()}
+    </div>
+  );
+}
