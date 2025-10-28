@@ -134,7 +134,18 @@ public class UserController {
 
         String token = JwtTokenUtil.generateToken(user.getEmail());
 
-        return ResponseEntity.ok(new LoginResponse(user.getId(), user.getEmail(), token));
+        String role = (user.getUserType() != null)
+            ? user.getUserType().getTypeName()
+            : "Customer";
+
+        return ResponseEntity.ok(
+            new LoginResponse(
+                user.getId(), 
+                user.getEmail(), 
+                token,
+                role
+                )
+        );
     }
 
 
