@@ -9,18 +9,24 @@ import com.cinema.backend.dto.AddressResponse;
 import com.cinema.backend.dto.CardRequest;
 import com.cinema.backend.dto.CardResponse;
 import com.cinema.backend.dto.ChangePasswordRequest;
+import com.cinema.backend.dto.LoginRequest;
+import com.cinema.backend.dto.LoginResponse;
 import com.cinema.backend.dto.RegisterRequest;
 import com.cinema.backend.dto.ResetPasswordRequest;
 import com.cinema.backend.dto.UpdateUserRequest;
 import com.cinema.backend.services.UserService;
+import com.cinema.backend.utils.JwtTokenUtil;
+
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import java.util.List;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 /**
  * Exposes user profile endpoints to the frontend.
@@ -30,7 +36,12 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
-    public UserController(UserService userService) { this.userService = userService; }
+    private final PasswordEncoder passwordEncoder;
+
+    public UserController(UserService userService, PasswordEncoder passwordEncoder) { 
+        this.userService = userService; 
+        this.passwordEncoder = passwordEncoder;
+    }
 
     /** GET /api/users/{id}/profile — fetch profile for profile page */
     @GetMapping("/{id}/profile")
@@ -110,6 +121,22 @@ public class UserController {
             return ResponseEntity.badRequest().body("Constraint violation during registration");
         }
     }
+
+    // POST /login
+    @PostMapping("/api/login")
+    public ResponseEntity<?> login(@RequestBody @Valid LoginRequest req) {
+        User user = userService.getByEmail(req.email());
+
+        if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid email or password");
+        }
+
+        String token = JwtTokenUtil.generateToken(user.getEmail());
+
+        return ResponseEntity.ok(new LoginResponse(user.getId(), user.getEmail(), token));
+    }
+
 
     //* GET /{id}/address  */
     @GetMapping("/{id}/address")
