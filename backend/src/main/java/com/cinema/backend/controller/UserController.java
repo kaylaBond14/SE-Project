@@ -130,6 +130,9 @@ public class UserController {
         if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Invalid email or password");
+        } else if (user.isVerified() == false) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Your account is not verified. Please check your email and click on the verification link.");
         }
 
         String token = JwtTokenUtil.generateToken(user.getEmail());
