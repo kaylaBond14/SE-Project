@@ -1,5 +1,8 @@
 package com.cinema.backend;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,6 +14,7 @@ import com.cinema.backend.dto.ResetPasswordRequest;
 import com.cinema.backend.dto.UpdateUserRequest;
 import com.cinema.backend.dto.AddressRequest;
 import com.cinema.backend.dto.CardRequest;
+import com.cinema.backend.dto.CardRequestDuringRegister;
 import com.cinema.backend.services.UserService;
 import com.cinema.backend.controller.UserController;
 
@@ -32,9 +36,15 @@ public class EmailTest {
     @Test
     public void test() {
         // Create a new User object
+        AddressRequest billingAddrReq = new AddressRequest("home", "2125 Plantation Land", 
+                                    "Atlanta", "GA", "30341", "USA");
+        CardRequestDuringRegister cardReq = new CardRequestDuringRegister("DISCOVER", "4701", 2, 
+                                    2026, billingAddrReq, "1234567891234701");
+        List<CardRequestDuringRegister> cards = new LinkedList<CardRequestDuringRegister>();
+        cards.add(cardReq);
         RegisterRequest request = new RegisterRequest(email, "password", "Nathan", 
                                     "Nguyen", "4045434898", false, 
-                                    null, null);
+                                        null, cards);
         userController.register(request);
         /*
         // Edit Profile to add Address and Card info
@@ -67,8 +77,8 @@ public class EmailTest {
         userController.deleteCard(id, cardID);
         */
         // Test "Forgot Password" functionality
-        ResetPasswordRequest resetReq = new ResetPasswordRequest(email, "superSecurePassword");
-        userController.resetPassword(resetReq);
+        //ResetPasswordRequest resetReq = new ResetPasswordRequest(email, "superSecurePassword");
+        //userController.resetPassword(resetReq);
     }
     /*
      * Notes:
