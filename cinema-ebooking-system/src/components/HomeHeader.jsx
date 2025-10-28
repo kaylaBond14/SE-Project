@@ -52,7 +52,7 @@ export default function HomeHeader({
               style={buttonStyle} 
               onClick={onProfileClick} 
             > 
-              My Profile
+              Edit Profile
             </button> 
             <button 
               style={buttonStyle}

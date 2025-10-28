@@ -98,8 +98,8 @@ public class UserController {
     }
 
     /** POST /api/register - create register and optional payment cards */
-    @PostMapping("/api/register")
-    @RequestMapping(value = "/api/register", method = RequestMethod.POST)
+    @PostMapping("/register")
+    //@RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         try {
             User created = userService.register(req);
