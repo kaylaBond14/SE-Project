@@ -150,11 +150,11 @@ public class UserService {
         u.setAccountSuspended(false);
 
         // default status/type
-        UserStatus active = statusRepository.findByStatusName("Active")
+        UserStatus inactive = statusRepository.findByStatusName("Inactive")
                 .orElseThrow(() -> new IllegalStateException("Missing lookup: user_statuses.Active"));
         UserType customer = typeRepository.findByTypeName("Customer")
                 .orElseThrow(() -> new IllegalStateException("Missing lookup: user_types.Customer"));
-        u.setStatus(active);
+        u.setStatus(inactive);
         u.setUserType(customer);
 
         // tokens per schema (NOT NULL)
