@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MovieCard from "./MovieCard.jsx";
 
 
-export default function Home({ onMovieSelect, isLoggedIn, user }) {
+export default function Home({ onMovieSelect }) {
   // State to hold all movies and a filtered list of movies.
   const [allMovies, setAllMovies] = useState([]);
   const [filteredMovies, setFilteredMovies] = useState(allMovies);
@@ -224,46 +224,6 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
           <MovieCard key={movie.id} movie={movie} onMovieSelect={onMovieSelect} />
         ))}
       </div>
-      {/* ==== DASHBOARD SECTIONS (only visible when logged in) ==== */}
-{isLoggedIn && (
-  <div className="user-dashboard">
-    {/* --- My Bookings --- */}
-    <section className="bookings-section">
-      <h2>🎟 My Bookings</h2>
-      <div className="bookings-grid">
-        {[
-          { id: 1, movieTitle: "Inception", showDate: "2025-11-05", showTime: "19:30", seats: "A1, A2" },
-          { id: 2, movieTitle: "Oppenheimer", showDate: "2025-11-10", showTime: "20:00", seats: "B5, B6" },
-        ].map((b) => (
-          <div key={b.id} className="booking-card">
-            <h3>{b.movieTitle}</h3>
-            <p>{b.showDate} at {b.showTime}</p>
-            <p>Seats: {b.seats}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-
-    {/* --- Recommendations --- */}
-    <section className="recommendations-section">
-      <h2>✨ Recommended for You</h2>
-      <div className="recs-grid">
-        {[
-          { id: 101, title: "Interstellar", genre: "Sci-Fi", posterUrl: "https://via.placeholder.com/200x300?text=Interstellar" },
-          { id: 102, title: "Tenet", genre: "Action", posterUrl: "https://via.placeholder.com/200x300?text=Tenet" },
-          { id: 103, title: "The Dark Knight", genre: "Thriller", posterUrl: "https://via.placeholder.com/200x300?text=Dark+Knight" },
-        ].map((r) => (
-          <div key={r.id} className="rec-card">
-            <img src={r.posterUrl} alt={r.title} />
-            <h4>{r.title}</h4>
-            <p>{r.genre}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  </div>
-)}
-
     </div>
   );
 }
