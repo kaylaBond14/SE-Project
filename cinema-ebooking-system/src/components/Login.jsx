@@ -71,7 +71,7 @@ export default function Login({ onLoginSuccess, onGoForgot, onGoSignup }) {
   return (
     <div className="login-container">
       <form onSubmit={handleLogin} className="login-card">
-        <h2 className="login-title">Welcome Back</h2>
+        <h2 className="login-title">Welcome!</h2>
 
         {error && <p className="error-text">{error}</p>}
 

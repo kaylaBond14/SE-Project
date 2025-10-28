@@ -3,15 +3,21 @@ import React from 'react';
 // Accept a new prop, 'readOnly', with a default value of false
 export default function AddressForm({ address, setAddress, readOnly = false }) {
 
-  const handleChange = (e) => {
+ const handleChange = (e) => {
     // If it's read-only, do nothing on change
     if (readOnly) return; 
     
     const { name, value } = e.target;
-    setAddress(prevAddress => ({
-      ...prevAddress,
+
+    // We build the new address object ourselves
+    // We use the 'address' prop as the base
+    const newAddress = {
+      ...address,
       [name]: value,
-    }));
+    };
+    
+    // Call setAddress with the new object, NOT a function
+    setAddress(newAddress);
   };
 
   // Styles
@@ -55,7 +61,7 @@ export default function AddressForm({ address, setAddress, readOnly = false }) {
         style={activeInputStyle} //  Use the active style
         type="text" 
         name="street"
-        value={address.street} 
+        value={address.street || ''} 
         onChange={handleChange}
         readOnly={readOnly} // Add the readOnly HTML attribute
         disabled={readOnly} // Add disabled to prevent focus/clicks
@@ -66,7 +72,7 @@ export default function AddressForm({ address, setAddress, readOnly = false }) {
         style={activeInputStyle}
         type="text" 
         name="city"
-        value={address.city} 
+        value={address.city || ''} 
         onChange={handleChange}
         readOnly={readOnly}
         disabled={readOnly}
@@ -77,7 +83,7 @@ export default function AddressForm({ address, setAddress, readOnly = false }) {
         style={activeInputStyle}
         type="text" 
         name="state"
-        value={address.state} 
+        value={address.state || ''} 
         onChange={handleChange}
         maxLength="2"
         readOnly={readOnly}
@@ -89,7 +95,7 @@ export default function AddressForm({ address, setAddress, readOnly = false }) {
         style={activeInputStyle}
         type="text" 
         name="zip"
-        value={address.zip} 
+        value={address.zip || ''} 
         onChange={handleChange}
         maxLength="5"
         readOnly={readOnly}
