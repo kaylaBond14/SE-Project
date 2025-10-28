@@ -27,7 +27,7 @@ export default function App() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // NEW: Helper function to get auth headers
+  // Helper function to get auth headers
   // This reads the token that Login.js saved to localStorage
   const getAuthHeaders = (includeContentType = true) => {
     const token = localStorage.getItem('jwtToken');
@@ -158,28 +158,29 @@ export default function App() {
 
   // Helper function to format address for the API
   const formatAddressForAPI = (addr) => {
+    // UPDATED: Now expects 'zip' from form state
     if (!addr.street || !addr.city || !addr.state || !addr.zip) {
       return null;
     }
     return {
-      label: "Home",
+      label: "Home", // Or "Billing" - backend might not use this
       street: addr.street,
       city: addr.city,
       state: addr.state,
-      postalCode: addr.zip,
+      postalCode: addr.zip, // Map zip -> postalCode
       country: "USA",
     };
   };
   
   // This function now calls  backend API controllers.
+  // UPDATED: This function is now completely rewritten
   const handleProfileUpdate = async (updatedData) => { //(added async)
     if (!currentUser) return; //(Safety check)
     
     const id = currentUser.id; 
     let updateFailed = false; 
 
-    // Update Basic Info (firstName, lastName, phone, promoOptIn) 
-    // This creates an object that matches  'UpdateUserRequest' DTO 
+    // 1. Update Basic Info (firstName, lastName, phone, promoOptIn) 
     const basicsToUpdate = { 
       firstName: updatedData.firstName,
       lastName: updatedData.lastName, 
@@ -189,10 +190,9 @@ export default function App() {
 
     try { 
       console.log('Updating basic info:', basicsToUpdate); 
-      //  call  PATCH endpoint 
       const response = await fetch(`/api/users/${id}`, { 
         method: 'PATCH', 
-        headers: getAuthHeaders(), // UPDATED
+        headers: getAuthHeaders(),
         body: JSON.stringify(basicsToUpdate), 
       }); 
       if (!response.ok) throw new Error('Failed to update basic info.'); 
@@ -202,10 +202,8 @@ export default function App() {
       updateFailed = true; 
     } 
 
-    // Update Password (if provided)
-    // This runs only if the user entered a new password and the first update succeeded
+    // 2. Update Password (if provided)
     if (!updateFailed && updatedData.newPassword) { 
-      // This creates an object that matches  'ChangePasswordRequest' DTO 
       const passwordRequest = { 
         currentPassword: updatedData.currentPassword, 
         newPassword: updatedData.newPassword, 
@@ -213,15 +211,13 @@ export default function App() {
 
       try { 
         console.log('Changing password...'); 
-        // call  POST endpoint for changing password 
         const response = await fetch(`/api/users/${id}/change-password`, { 
           method: 'POST', 
-          headers: getAuthHeaders(), // UPDATED
+          headers: getAuthHeaders(),
           body: JSON.stringify(passwordRequest), 
         }); 
         
         if (!response.ok) { 
-          // Get the specific error message from the backend (invaild password)
           const errorMsg = await response.text(); 
           throw new Error(errorMsg || 'Failed to change password.'); 
         } 
@@ -232,15 +228,14 @@ export default function App() {
       } 
     } 
     
-    //  API logic for Address
+    // 3. API logic for Address
     if (!updateFailed && updatedData.homeAddress) {
       const formattedAddress = formatAddressForAPI(updatedData.homeAddress);
       if (formattedAddress) {
         try {
           let addressEndpoint = `/api/users/${id}/address`;
-          let addressMethod = 'POST'; // Assume we are creating
+          let addressMethod = 'POST'; 
           
-          // If user already had an address, we PATCH (update) it
           if (currentUser.address && currentUser.address.id) {
             addressEndpoint = `/api/users/${id}/address/${currentUser.address.id}`;
             addressMethod = 'PATCH';
@@ -249,7 +244,7 @@ export default function App() {
           console.log(`Sending address via ${addressMethod} to ${addressEndpoint}`);
           const response = await fetch(addressEndpoint, {
             method: addressMethod,
-            headers: getAuthHeaders(), // UPDATED
+            headers: getAuthHeaders(),
             body: JSON.stringify(formattedAddress),
           });
           if (!response.ok) throw new Error('Failed to save home address.');
@@ -262,68 +257,107 @@ export default function App() {
       }
     }
     
-    // Full API logic for Payment Card 
-    // This logic assumes we are only managing ONE card (the first in the list)
+    // --- 4. Full API logic for MULTIPLE Payment Cards ---
     if (!updateFailed) {
-      const existingCard = currentUser.paymentCards ? currentUser.paymentCards[0] : null;
-      const userWantsToSaveCard = updatedData.paymentInfo;
+      const formCards = updatedData.paymentCards; // Array from EditProfile
+      const existingCards = currentUser.paymentCards || [];
 
-      try {
-        // Case 1: User wants to save (add/update) a card
-        if (userWantsToSaveCard) {
-          if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(updatedData.paymentInfo.expDate)) {
-             throw new Error("Please enter the expiration date in MM/YY format.");
-          }
-          const [month, year] = updatedData.paymentInfo.expDate.split('/');
-          const formattedBillingAddress = formatAddressForAPI(
-            updatedData.paymentInfo.billingAddress
-          );
-          if (!formattedBillingAddress) throw new Error("Please fill out billing address for card.");
+      // Find cards to ADD, UPDATE, and DELETE
+      const cardsToAdd = formCards.filter(c => c.id === null);
+      const cardsToUpdate = formCards.filter(c => c.id !== null);
+      const cardIdsToUpdate = cardsToUpdate.map(c => c.id);
+      
+      const cardsToDelete = existingCards.filter(
+        (existing) => !cardIdsToUpdate.includes(existing.id)
+      );
 
-          const cardPayload = {
-            brand: updatedData.paymentInfo.cardType,
-            cardNumber: updatedData.paymentInfo.cardNumber,
-            expMonth: month,
-            expYear: `20${year}`,
-            billingAddress: formattedBillingAddress,
-          };
+      // --- Helper to build payload ---
+      const buildCardPayload = (card) => {
+        const [month, year] = card.expDate.split('/');
+        const billingAddress = card.billingSameAsHome 
+          ? updatedData.homeAddress // Use the (already formatted) home address
+          : card.billingAddress;
           
-          let cardEndpoint = `/api/users/${id}/cards`;
-          let cardMethod = 'POST';
-
-          // If a card already exists, PATCH it
-          if (existingCard && existingCard.id) {
-            cardEndpoint = `/api/users/${id}/cards/${existingCard.id}`;
-            cardMethod = 'PATCH';
-          }
-          
-          console.log(`Sending card via ${cardMethod} to ${cardEndpoint}`);
-          const response = await fetch(cardEndpoint, {
-            method: cardMethod,
-            headers: getAuthHeaders(), // UPDATED
-            body: JSON.stringify(cardPayload),
-          });
-          if (!response.ok) throw new Error('Failed to save payment card.');
-
-        // Case 2: User unchecked the box, and a card *did* exist
-        } else if (!userWantsToSaveCard && existingCard) {
-          console.log(`Deleting card at /api/users/${id}/cards/${existingCard.id}`);
-          const response = await fetch(`/api/users/${id}/cards/${existingCard.id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders(false) // UPDATED
-          });
-          if (!response.ok) throw new Error('Failed to delete payment card.');
+        const formattedBillingAddress = formatAddressForAPI(billingAddress);
+        
+        // This payload matches your 'CardRequest' DTO
+        const payload = {
+          brand: card.cardType,
+          expMonth: month,
+          expYear: `20${year}`,
+          billingAddress: formattedBillingAddress,
+        };
+        
+        // Only add 'cardNumber' if the user entered one
+        // This assumes PATCH can handle partial updates
+        if (card.cardNumber) {
+          payload.cardNumber = card.cardNumber;
         }
-        // Case 3: User doesn't want card, and had no card. Do nothing.
+        
+        return payload;
+      };
+      
+      // --- Run DELETE operations ---
+      for (const card of cardsToDelete) {
+        try {
+          console.log(`Deleting card: ${card.id}`);
+          const response = await fetch(`/api/users/${id}/cards/${card.id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(false)
+          });
+          if (!response.ok) throw new Error(`Failed to delete card ${card.id}`);
+        } catch (err) {
+          console.error(err);
+          alert(err.message);
+          updateFailed = true;
+        }
+      }
 
-      } catch (error) {
-        console.error(error);
-        alert(error.message);
-        updateFailed = true;
+      // --- Run ADD operations ---
+      for (const card of cardsToAdd) {
+        try {
+          console.log("Adding new card...");
+          const payload = buildCardPayload(card);
+          if (!payload.cardNumber) { // New cards MUST have a number
+             throw new Error("New card is missing a card number.");
+          }
+          
+          const response = await fetch(`/api/users/${id}/cards`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error('Failed to add new card.');
+        } catch (err) {
+          console.error(err);
+          alert(err.message);
+          updateFailed = true;
+        }
+      }
+
+      // --- Run UPDATE operations ---
+      for (const card of cardsToUpdate) {
+        try {
+          console.log(`Updating card: ${card.id}`);
+          const payload = buildCardPayload(card);
+          
+          const response = await fetch(`/api/users/${id}/cards/${card.id}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error(`Failed to update card ${card.id}`);
+        } catch (err) {
+          console.error(err);
+          alert(err.message);
+          updateFailed = true;
+        }
       }
     }
+    // --- END OF NEW PAYMENT LOGIC ---
     
-    //  Refetch data & go home 
+    
+    //  5. Refetch data & go home 
     if (!updateFailed) { 
       alert('Profile Saved!'); 
       fetchUserProfile(id); // Re-fetch the user to get the confirmed changes 
