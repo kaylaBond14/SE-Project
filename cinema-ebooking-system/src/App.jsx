@@ -27,6 +27,21 @@ export default function App() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // NEW: Helper function to get auth headers
+  // This reads the token that Login.js saved to localStorage
+  const getAuthHeaders = (includeContentType = true) => {
+    const token = localStorage.getItem('jwtToken');
+    const headers = {};
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
   
   const handleMovieSelect = (movie) => {
     setSelectedMovie(movie);
@@ -72,6 +87,7 @@ export default function App() {
     setIsLoggedIn(false); 
     setCurrentUser(null); 
     setCurrentUserId(null); 
+    localStorage.removeItem('jwtToken'); // NEW: Clear the token on logout
     setCurrentPage('home'); 
   };
 
@@ -87,14 +103,20 @@ export default function App() {
   const fetchUserProfile = async (id) => { 
     try { 
       // Fetch User Basics
-      const userResponse = await fetch(`/api/users/${id}/profile`); 
+      const userResponse = await fetch(`/api/users/${id}/profile`, {
+        method: 'GET', // UPDATED
+        headers: getAuthHeaders(false) // UPDATED
+      }); 
       if (!userResponse.ok) throw new Error('Failed to fetch user profile.'); 
       const userData = await userResponse.json(); 
 
       // Fetch User Address (if it exists)
       let addressData = null;
       try {
-        const addressResponse = await fetch(`/api/users/${id}/address`);
+        const addressResponse = await fetch(`/api/users/${id}/address`, {
+          method: 'GET', // UPDATED
+          headers: getAuthHeaders(false) // UPDATED
+        });
         if (addressResponse.ok) {
           addressData = await addressResponse.json();
         }
@@ -105,7 +127,10 @@ export default function App() {
       // Fetch User Cards (if they exist)
       let cardsData = [];
       try {
-        const cardsResponse = await fetch(`/api/users/${id}/cards`);
+        const cardsResponse = await fetch(`/api/users/${id}/cards`, {
+          method: 'GET', // UPDATED
+          headers: getAuthHeaders(false) // UPDATED
+        });
         if (cardsResponse.ok) {
           cardsData = await cardsResponse.json();
         }
@@ -167,7 +192,7 @@ export default function App() {
       //  call  PATCH endpoint 
       const response = await fetch(`/api/users/${id}`, { 
         method: 'PATCH', 
-        headers: { 'Content-Type': 'application/json' }, 
+        headers: getAuthHeaders(), // UPDATED
         body: JSON.stringify(basicsToUpdate), 
       }); 
       if (!response.ok) throw new Error('Failed to update basic info.'); 
@@ -191,7 +216,7 @@ export default function App() {
         // call  POST endpoint for changing password 
         const response = await fetch(`/api/users/${id}/change-password`, { 
           method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
+          headers: getAuthHeaders(), // UPDATED
           body: JSON.stringify(passwordRequest), 
         }); 
         
@@ -224,7 +249,7 @@ export default function App() {
           console.log(`Sending address via ${addressMethod} to ${addressEndpoint}`);
           const response = await fetch(addressEndpoint, {
             method: addressMethod,
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(), // UPDATED
             body: JSON.stringify(formattedAddress),
           });
           if (!response.ok) throw new Error('Failed to save home address.');
@@ -275,7 +300,7 @@ export default function App() {
           console.log(`Sending card via ${cardMethod} to ${cardEndpoint}`);
           const response = await fetch(cardEndpoint, {
             method: cardMethod,
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(), // UPDATED
             body: JSON.stringify(cardPayload),
           });
           if (!response.ok) throw new Error('Failed to save payment card.');
@@ -284,7 +309,8 @@ export default function App() {
         } else if (!userWantsToSaveCard && existingCard) {
           console.log(`Deleting card at /api/users/${id}/cards/${existingCard.id}`);
           const response = await fetch(`/api/users/${id}/cards/${existingCard.id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: getAuthHeaders(false) // UPDATED
           });
           if (!response.ok) throw new Error('Failed to delete payment card.');
         }
@@ -312,8 +338,8 @@ export default function App() {
       return (
         <Home 
           onMovieSelect={handleMovieSelect}
-          isLoggedIn={isLoggedIn} // NEW
-          user={currentUser} // NEW
+          isLoggedIn={isLoggedIn} 
+          user={currentUser} 
         />
       );
     } else if (currentPage === 'movie-detail') {
@@ -359,7 +385,7 @@ export default function App() {
         <Login
           onLoginSuccess={handleLoginSuccess}
           onGoForgot={() => setCurrentPage('forgot-password')}
-          onGoSignup={handleGoToRegister} // Re-uses your existing function
+          onGoSignup={handleGoToRegister} // Re-uses existing function
         />
       );
     } else if (currentPage === 'forgot-password') {
@@ -385,7 +411,7 @@ export default function App() {
     <div style={appStyle}>
       <HomeHeader 
         isLoggedIn={isLoggedIn} 
-        onLoginClick={handleLoginClick} // NEW
+        onLoginClick={handleLoginClick} 
         onLogoutClick={handleLogout} 
         onRegisterClick={handleGoToRegister}
         onProfileClick={handleGoToProfile}
