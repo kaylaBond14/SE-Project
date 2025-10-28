@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './Login.css'; // 👈 add this line
+import './Login.css'; 
 
 export default function Login({ onLoginSuccess, onGoForgot, onGoSignup }) {
   const [email, setEmail] = useState('');
@@ -78,7 +78,7 @@ export default function Login({ onLoginSuccess, onGoForgot, onGoSignup }) {
         <p className="signup-text">
           Don’t have an account?{' '}
           <a href="#" className="signup-link" onClick={onGoSignup}>
-  Sign up
+  Create Account
 </a>
         </p>
       </form>
