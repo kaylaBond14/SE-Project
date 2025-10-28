@@ -138,12 +138,17 @@ public class UserController {
             ? user.getUserType().getTypeName()
             : "Customer";
 
+        String status = (user.getStatus() != null)
+            ? user.getStatus().getStatusName()
+            : "Active";
+
         return ResponseEntity.ok(
             new LoginResponse(
                 user.getId(), 
                 user.getEmail(), 
                 token,
-                role
+                role,
+                status
                 )
         );
     }
