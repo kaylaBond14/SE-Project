@@ -150,11 +150,11 @@ public class UserService {
         u.setAccountSuspended(false);
 
         // default status/type
-        UserStatus active = statusRepository.findByStatusName("Active")
+        UserStatus inactive = statusRepository.findByStatusName("Inactive")
                 .orElseThrow(() -> new IllegalStateException("Missing lookup: user_statuses.Active"));
         UserType customer = typeRepository.findByTypeName("Customer")
                 .orElseThrow(() -> new IllegalStateException("Missing lookup: user_types.Customer"));
-        u.setStatus(active);
+        u.setStatus(inactive);
         u.setUserType(customer);
 
         // tokens per schema (NOT NULL)
@@ -168,13 +168,41 @@ public class UserService {
             savedAddress = upsertSingleAddress(u, req.address()); // ensures addresses.id exists now
         }
 
-        // Update: cards reference the just saved address
+        // optional cards (0..3)
         if (req.cards() != null && !req.cards().isEmpty()) {
-            for (CardRequest c : req.cards()) {
+            for (CardRequestDuringRegister c : req.cards()) {
                 if (cardRepository.countByUserId(u.getId()) >= 3) {
                     throw new IllegalArgumentException("Card limit exceeded (max 3).");
                 }
-                saveCardForUser(u, savedAddress, c);
+ 
+                String pan = normalizePan(c.token());
+                assertValidPan(pan);
+                String last4 = pan.substring(pan.length() - 4);
+
+                PaymentCard pc = new PaymentCard();
+                pc.setUser(u);
+                pc.setBrand(c.brand());
+                pc.setLast4(last4);
+                pc.setExpMonth((short) c.expMonth());
+                pc.setExpYear((short) c.expYear());
+                pc.setToken(pan);      // AES-GCM @Convert encrypts on save
+
+                pc.setBillingAddress(createAddress(u.getId(), c.addressReq()));
+                /*
+                if (c.billingAddrId() != null) {
+                    addressRepository.findById(c.billingAddrId()).ifPresent(addr -> {
+                        if (!addr.getUser().getId().equals(u.getId())) {
+                            throw new IllegalArgumentException("Billing address does not belong to user");
+                        }
+                        pc.setBillingAddress(addr);
+                    });
+                } else {
+                    // optional: auto-use the user's single address if one exists
+                    addressRepository.findByUserId(u.getId()).ifPresent(pc::setBillingAddress);
+                }
+                */
+
+                cardRepository.save(pc);
             }
         }
 
@@ -326,7 +354,7 @@ public class UserService {
     private static void assertValidPan(String pan) {
         if (pan == null) throw new IllegalArgumentException("Missing card number");
         if (!pan.matches("\\d{12,19}")) throw new IllegalArgumentException("Invalid card number length");
-        if (!luhnOk(pan)) throw new IllegalArgumentException("Invalid card number (Luhn)");
+        //if (!luhnOk(pan)) throw new IllegalArgumentException("Invalid card number (Luhn)");
     }
 
     private static boolean luhnOk(String num) {

@@ -28,6 +28,6 @@ public record RegisterRequest (
 
     @Valid AddressRequest address,
 
-    @Valid List<CardRequest> cards
+    @Valid List<CardRequestDuringRegister> cards
 
 ) {}
