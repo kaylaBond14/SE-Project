@@ -4,4 +4,4 @@ CREATE DATABASE IF NOT EXISTS ces
 -- use ces database
 USE ces;
 -- default timezone
-SET time_zone = '+00:00'
+SET time_zone = '+00:00';
