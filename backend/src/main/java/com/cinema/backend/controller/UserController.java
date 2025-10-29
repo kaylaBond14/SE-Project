@@ -1,7 +1,8 @@
 package com.cinema.backend.controller;
 
 import com.cinema.backend.model.User;
-import com.cinema.backend.model.Address;
+//import com.cinema.backend.model.Address;
+import com.cinema.backend.model.HomeAddress;
 import com.cinema.backend.model.PaymentCard;
 import com.cinema.backend.dto.UserResponse;
 import com.cinema.backend.dto.AddressRequest;
@@ -161,18 +162,18 @@ public class UserController {
     @GetMapping("/{id}/address")
     public ResponseEntity<AddressResponse> getAddress(@PathVariable Long id) {
         try {
-            Address a = userService.getAddress(id);
+            HomeAddress a = userService.getHomeAddress(id);
             return ResponseEntity.ok(toResponse(a));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    //* POST address*/
+    //* POST /{id}/address*/
     @PostMapping("/{id}/address")
     public ResponseEntity<?> createAddress(@PathVariable Long id, @Valid @RequestBody AddressRequest req) {
         try {
-            Address a = userService.createAddress(id, req);
+            HomeAddress a = userService.createOrReplaceHomeAddress(id, req);
             return ResponseEntity.status(201).body(toResponse(a));
         } catch (IllegalStateException ise) {
             return ResponseEntity.status(409).body(ise.getMessage()); 
@@ -187,7 +188,7 @@ public class UserController {
                                           @PathVariable Long addressId,
                                           @RequestBody AddressRequest req) {
         try {
-            Address a = userService.patchAddress(id, addressId, req);
+            HomeAddress a = userService.patchHomeAddress(id, addressId, req);
             return ResponseEntity.ok(toResponse(a));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.notFound().build();
@@ -255,7 +256,7 @@ public class UserController {
                 u.getCreatedAt(), u.getUpdatedAt()
         );
     }
-    private AddressResponse toResponse(Address a) {
+    private AddressResponse toResponse(HomeAddress a) {
         return new AddressResponse(a.getId(), a.getLabel(), a.getStreet(), a.getCity(),
                 a.getState(), a.getPostalCode(), a.getCountry());
     }
