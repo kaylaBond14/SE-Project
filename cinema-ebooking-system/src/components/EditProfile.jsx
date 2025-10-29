@@ -399,8 +399,15 @@ export default function EditProfile({ user, onGoBack, onSave }) {
                     style={inputStyle} 
                     type="text" 
                     value={card.cardNumber} 
-                    onChange={(e) => handleCardUpdate(card.tempId, 'cardNumber', e.target.value)}
+                    onChange={(e) => {
+                      // Get only the digits
+                      const digitsOnly = e.target.value.replace(/\D/g, '');
+                    
+                      handleCardUpdate(card.tempId, 'cardNumber', digitsOnly);
+                      
+                    }}
                     placeholder={card.last4 ? `•••• ${card.last4}` : 'Enter full card number'}
+                    
                   />
                   
                   <label style={labelStyle}>Expiration Date (MM/YY)</label>
