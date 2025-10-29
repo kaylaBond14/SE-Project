@@ -83,6 +83,18 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
     }
 
+    @Transactional
+    public void setStatus(Long userId, String statusName) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+        UserStatus status = statusRepository.findByStatusName(statusName)
+            .orElseThrow(() -> new IllegalStateException("Status not found: " + statusName));
+
+        user.setStatus(status);
+        userRepository.save(user);
+    }
+
     /**
      * Parial update of user basics
      */
@@ -280,6 +292,7 @@ public class UserService {
         return homeAddressRepository.save(a);
     }
 
+    
     // Cards
 
 
