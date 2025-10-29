@@ -400,7 +400,7 @@ export default function EditProfile({ user, onGoBack, onSave }) {
                     type="text" 
                     value={card.cardNumber} 
                     onChange={(e) => handleCardUpdate(card.tempId, 'cardNumber', e.target.value)}
-                    placeholder={card.last4 ? `Enter new card to replace •••• ${card.last4}` : 'Enter full card number'}
+                    placeholder={card.last4 ? `•••• ${card.last4}` : 'Enter full card number'}
                   />
                   
                   <label style={labelStyle}>Expiration Date (MM/YY)</label>
