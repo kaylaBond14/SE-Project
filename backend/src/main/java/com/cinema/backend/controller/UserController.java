@@ -1,6 +1,7 @@
 package com.cinema.backend.controller;
 
 import com.cinema.backend.model.User;
+//import com.cinema.backend.repository.UserStatusRepository; 
 //import com.cinema.backend.model.Address;
 import com.cinema.backend.model.HomeAddress;
 import com.cinema.backend.model.PaymentCard;
@@ -12,6 +13,7 @@ import com.cinema.backend.dto.CardResponse;
 import com.cinema.backend.dto.ChangePasswordRequest;
 import com.cinema.backend.dto.LoginRequest;
 import com.cinema.backend.dto.LoginResponse;
+import com.cinema.backend.dto.LogoutRequest;
 import com.cinema.backend.dto.RegisterRequest;
 import com.cinema.backend.dto.ResetPasswordRequest;
 import com.cinema.backend.dto.UpdateUserRequest;
@@ -38,6 +40,7 @@ public class UserController {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    //private final UserStatus status;
 
     public UserController(UserService userService, PasswordEncoder passwordEncoder) { 
         this.userService = userService; 
@@ -136,6 +139,8 @@ public class UserController {
                     .body("Your account is not verified. Please check your email and click on the verification link.");
         }
 
+        userService.setStatus(user.getId(), "Active");
+
         String token = JwtTokenUtil.generateToken(user.getEmail());
 
         String role = (user.getUserType() != null)
@@ -156,6 +161,13 @@ public class UserController {
                 )
         );
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody @Valid LogoutRequest req) {
+        userService.setStatus(req.userId(), "Inactive");
+        return ResponseEntity.ok().build(); // or .noContent().build()
+    }
+
 
 
     //* GET /{id}/address  */
@@ -256,16 +268,20 @@ public class UserController {
                 u.getCreatedAt(), u.getUpdatedAt()
         );
     }
+
     private AddressResponse toResponse(HomeAddress a) {
         return new AddressResponse(a.getId(), a.getLabel(), a.getStreet(), a.getCity(),
                 a.getState(), a.getPostalCode(), a.getCountry());
     }
+
     private CardResponse toResponse(PaymentCard c) {
         return new CardResponse(
                 c.getId(), c.getBrand(), c.getLast4(), c.getExpMonth(), c.getExpYear(),
                 c.getBillingAddress() != null ? c.getBillingAddress().getId() : null
         );
     }
+
+
 }
 
 

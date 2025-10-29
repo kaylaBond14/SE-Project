@@ -98,7 +98,54 @@ export default function App() {
     }
   };
 
-  // This logs the user out and clears their data
+
+  
+  const handleLogout = async () => {
+    console.log("Log out button clicked...");
+    try {
+      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('jwtToken');
+
+      if (!userId) {
+        console.error("No userId found in localStorage — cannot log out properly.");
+        return;
+      }
+
+      // Send logout request to backend
+      const response = await fetch('api/users/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // optional if backend uses JWT
+        },
+        body: JSON.stringify({ userId: parseInt(userId) })
+      });
+      console.log("Logout request sent to backend.");
+
+      if (!response.ok) {
+        console.error("Failed to log out:", await response.text());
+        return;
+      }
+
+      // Clear local data and reset frontend state
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      setCurrentUserId(null);
+      localStorage.removeItem('jwtToken');
+      localStorage.removeItem('userId');
+      console.log("Cleared local session data.");
+      setCurrentPage('home');
+
+      console.log("User logged out and status set to Inactive.");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+  
+
+
+
+  /**   This logs the user out and clears their data
   const handleLogout = () => { 
     setIsLoggedIn(false); 
     setCurrentUser(null); 
@@ -107,6 +154,8 @@ export default function App() {
     localStorage.removeItem('userId'); // Clear the saved user ID 
     setCurrentPage('home'); 
   };
+  */
+  
 
   // This 'useEffect' hook runs automatically whenever 'currentUserId' changes.
   useEffect(() => { 
