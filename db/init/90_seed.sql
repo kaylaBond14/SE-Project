@@ -27,7 +27,7 @@ INSERT INTO users (
     promo_opt_in
 ) VALUES (
     'cinemaebookingteam2@gmail.com',
-    'password hash here', -- Team2admin! as password
+    '$2a$10$LKsImqbKJx37mZoF8bcfEOIKbtuIqiRIP.NuX5Fhp9l3gaJWtUIve', -- Team2admin! as password
     'System',
     'Administrator',
     '000-000-0000',
@@ -74,7 +74,7 @@ INSERT INTO fees (name, amount, effective_on, active) VALUES
 
 -- promotions
 INSERT INTO promotions (code, description, discount_type, discount_value, min_purchase_amount, max_uses, starts_on, ends_on, active) VALUES
-('WELCOME10', '10% off for new customers', 'PERCENT', 10, 1000, NULL, '2024-01-01', '2025-12-31', TRUE),
+('WELCOME10', '10% off for new customers', 'PERCENT', 10, 1000, NULL, '2024-01-01', '2025-12-31', TRUE);
 -- ('SAVE5', '$5 off orders over $20', 'FIXED', 500, 2000, NULL, '2024-01-01', '2025-12-31', TRUE),
 -- ('EARLYBIRD', '15% off matinee shows', 'PERCENT', 15, 0, NULL, '2024-01-01', '2025-12-31', TRUE);
 
