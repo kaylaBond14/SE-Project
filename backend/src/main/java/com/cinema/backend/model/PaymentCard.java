@@ -1,16 +1,15 @@
 package com.cinema.backend.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
 import com.cinema.backend.crypto.CryptoStringConverter;
 
 @Entity
-@Table(
-    name = "payment_cards",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "id"}, name = "uq_three_cards_per_user")
-)
+@Table(name = "payment_cards")
 public class PaymentCard {
 
     @Id
@@ -18,12 +17,20 @@ public class PaymentCard {
     private Long id;
 
     @NotBlank
+    @Column(name = "brand", nullable = false, length = 20)
     private String brand; // VISA, MASTERCARD, AMEX, DISCOVER, OTHER
 
     @Pattern(regexp = "\\d{4}")
+    @Column(name = "last4", nullable = false, length = 4)
     private String last4;
 
+    @Min(1)
+    @Max(12)
+    @Column(name = "exp_month", nullable = false)
     private short expMonth;
+
+    @Min(2000) @Max(2100)
+    @Column(name = "exp_year", nullable = false)
     private short expYear;
 
     @Convert(converter = CryptoStringConverter.class)
@@ -37,8 +44,8 @@ public class PaymentCard {
 
     // Optional billing address reference
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "billing_addr_id")
-    private Address billingAddress;
+    @JoinColumn(name = "billing_address_id")
+    private BillingAddress billingAddress;
 
     public PaymentCard() {}
 
@@ -64,7 +71,7 @@ public class PaymentCard {
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
 
-    public Address getBillingAddress() { return billingAddress; }
-    public void setBillingAddress(Address billingAddress) { this.billingAddress = billingAddress; }
+    public BillingAddress getBillingAddress() { return billingAddress; }
+    public void setBillingAddress(BillingAddress billingAddress) { this.billingAddress = billingAddress; }
 }
 
