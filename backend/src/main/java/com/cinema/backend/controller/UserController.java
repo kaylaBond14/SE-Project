@@ -123,7 +123,7 @@ public class UserController {
     }
 
     // POST /login
-    @PostMapping("/api/login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequest req) {
         User user = userService.getByEmail(req.email());
 

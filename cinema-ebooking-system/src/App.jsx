@@ -18,7 +18,7 @@ const AdminDashboard = () => (
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
   // This is a simple way to manage navigation without using a routing library.
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState('home'); 
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
@@ -27,6 +27,34 @@ export default function App() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Add this useEffect to check for an existing session on app load 
+  useEffect(() => {
+    const token = localStorage.getItem('jwtToken');
+    const userId = localStorage.getItem('userId'); // Get the saved user ID
+
+    if (token && userId) {
+      console.log('Found existing session, fetching profile...');
+      setIsLoggedIn(true);
+      setCurrentUserId(userId); // This will trigger the *other* useEffect to fetch the profile
+    }
+    // The empty array [] means this runs only ONCE when the app first loads
+  }, []); 
+
+  // Helper function to get auth headers
+  // This reads the token that Login.js saved to localStorage
+  const getAuthHeaders = (includeContentType = true) => {
+    const token = localStorage.getItem('jwtToken');
+    const headers = {};
+
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
   
   const handleMovieSelect = (movie) => {
     setSelectedMovie(movie);
@@ -57,8 +85,11 @@ export default function App() {
   // This function is called by the Login component on a successful login
   const handleLoginSuccess = (userData) => { // Expects { id, role }
     setIsLoggedIn(true);
-    setCurrentUserId(userData.id); // This will trigger your profile fetch
+    setCurrentUserId(userData.userId); // This will trigger your profile fetch
     
+    // Save the user's ID to localStorage ***
+    localStorage.setItem('userId', userData.userId);
+
     // Handle routing based on user role
     if (userData.role === 'admin') {
       setCurrentPage('admin-dashboard');
@@ -72,6 +103,8 @@ export default function App() {
     setIsLoggedIn(false); 
     setCurrentUser(null); 
     setCurrentUserId(null); 
+    localStorage.removeItem('jwtToken');
+    localStorage.removeItem('userId'); // Clear the saved user ID 
     setCurrentPage('home'); 
   };
 
@@ -87,14 +120,20 @@ export default function App() {
   const fetchUserProfile = async (id) => { 
     try { 
       // Fetch User Basics
-      const userResponse = await fetch(`/api/users/${id}/profile`); 
+      const userResponse = await fetch(`/api/users/${id}/profile`, {
+        method: 'GET', // UPDATED
+        headers: getAuthHeaders(false) // UPDATED
+      }); 
       if (!userResponse.ok) throw new Error('Failed to fetch user profile.'); 
       const userData = await userResponse.json(); 
 
       // Fetch User Address (if it exists)
       let addressData = null;
       try {
-        const addressResponse = await fetch(`/api/users/${id}/address`);
+        const addressResponse = await fetch(`/api/users/${id}/address`, {
+          method: 'GET', 
+          headers: getAuthHeaders(false) 
+        });
         if (addressResponse.ok) {
           addressData = await addressResponse.json();
         }
@@ -105,7 +144,10 @@ export default function App() {
       // Fetch User Cards (if they exist)
       let cardsData = [];
       try {
-        const cardsResponse = await fetch(`/api/users/${id}/cards`);
+        const cardsResponse = await fetch(`/api/users/${id}/cards`, {
+          method: 'GET', 
+          headers: getAuthHeaders(false) 
+        });
         if (cardsResponse.ok) {
           cardsData = await cardsResponse.json();
         }
@@ -114,8 +156,6 @@ export default function App() {
       }
       
       // Combine all data into one user object
-      //  API returns user data, but not address or payment.
-      //  add mock data for those parts so the form doesn't break.
       const fullUserData = { 
         ...userData, 
         address: addressData,     // This will be an object or null
@@ -133,15 +173,16 @@ export default function App() {
 
   // Helper function to format address for the API
   const formatAddressForAPI = (addr) => {
+    // Now expects 'zip' from form state
     if (!addr.street || !addr.city || !addr.state || !addr.zip) {
       return null;
     }
     return {
-      label: "Home",
+      label: "Home", 
       street: addr.street,
       city: addr.city,
       state: addr.state,
-      postalCode: addr.zip,
+      postalCode: addr.zip, 
       country: "USA",
     };
   };
@@ -154,7 +195,6 @@ export default function App() {
     let updateFailed = false; 
 
     // Update Basic Info (firstName, lastName, phone, promoOptIn) 
-    // This creates an object that matches  'UpdateUserRequest' DTO 
     const basicsToUpdate = { 
       firstName: updatedData.firstName,
       lastName: updatedData.lastName, 
@@ -164,10 +204,9 @@ export default function App() {
 
     try { 
       console.log('Updating basic info:', basicsToUpdate); 
-      //  call  PATCH endpoint 
       const response = await fetch(`/api/users/${id}`, { 
         method: 'PATCH', 
-        headers: { 'Content-Type': 'application/json' }, 
+        headers: getAuthHeaders(),
         body: JSON.stringify(basicsToUpdate), 
       }); 
       if (!response.ok) throw new Error('Failed to update basic info.'); 
@@ -177,10 +216,8 @@ export default function App() {
       updateFailed = true; 
     } 
 
-    // Update Password (if provided)
-    // This runs only if the user entered a new password and the first update succeeded
+    //  Update Password (if provided)
     if (!updateFailed && updatedData.newPassword) { 
-      // This creates an object that matches  'ChangePasswordRequest' DTO 
       const passwordRequest = { 
         currentPassword: updatedData.currentPassword, 
         newPassword: updatedData.newPassword, 
@@ -188,15 +225,13 @@ export default function App() {
 
       try { 
         console.log('Changing password...'); 
-        // call  POST endpoint for changing password 
         const response = await fetch(`/api/users/${id}/change-password`, { 
           method: 'POST', 
-          headers: { 'Content-Type': 'application/json' }, 
+          headers: getAuthHeaders(),
           body: JSON.stringify(passwordRequest), 
         }); 
         
         if (!response.ok) { 
-          // Get the specific error message from the backend (invaild password)
           const errorMsg = await response.text(); 
           throw new Error(errorMsg || 'Failed to change password.'); 
         } 
@@ -207,15 +242,14 @@ export default function App() {
       } 
     } 
     
-    //  API logic for Address
+    // API logic for Address
     if (!updateFailed && updatedData.homeAddress) {
       const formattedAddress = formatAddressForAPI(updatedData.homeAddress);
       if (formattedAddress) {
         try {
           let addressEndpoint = `/api/users/${id}/address`;
-          let addressMethod = 'POST'; // Assume we are creating
+          let addressMethod = 'POST'; 
           
-          // If user already had an address, we PATCH (update) it
           if (currentUser.address && currentUser.address.id) {
             addressEndpoint = `/api/users/${id}/address/${currentUser.address.id}`;
             addressMethod = 'PATCH';
@@ -224,7 +258,7 @@ export default function App() {
           console.log(`Sending address via ${addressMethod} to ${addressEndpoint}`);
           const response = await fetch(addressEndpoint, {
             method: addressMethod,
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify(formattedAddress),
           });
           if (!response.ok) throw new Error('Failed to save home address.');
@@ -237,65 +271,105 @@ export default function App() {
       }
     }
     
-    // Full API logic for Payment Card 
-    // This logic assumes we are only managing ONE card (the first in the list)
+    // Full API logic for MULTIPLE Payment Cards 
     if (!updateFailed) {
-      const existingCard = currentUser.paymentCards ? currentUser.paymentCards[0] : null;
-      const userWantsToSaveCard = updatedData.paymentInfo;
+      const formCards = updatedData.paymentCards; // Array from EditProfile
+      const existingCards = currentUser.paymentCards || [];
 
-      try {
-        // Case 1: User wants to save (add/update) a card
-        if (userWantsToSaveCard) {
-          if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(updatedData.paymentInfo.expDate)) {
-             throw new Error("Please enter the expiration date in MM/YY format.");
-          }
-          const [month, year] = updatedData.paymentInfo.expDate.split('/');
-          const formattedBillingAddress = formatAddressForAPI(
-            updatedData.paymentInfo.billingAddress
-          );
-          if (!formattedBillingAddress) throw new Error("Please fill out billing address for card.");
+      // Find cards to ADD, UPDATE, and DELETE
+      const cardsToAdd = formCards.filter(c => c.id === null);
+      const cardsToUpdate = formCards.filter(c => c.id !== null);
+      const cardIdsToUpdate = cardsToUpdate.map(c => c.id);
+      
+      const cardsToDelete = existingCards.filter(
+        (existing) => !cardIdsToUpdate.includes(existing.id)
+      );
 
-          const cardPayload = {
-            brand: updatedData.paymentInfo.cardType,
-            cardNumber: updatedData.paymentInfo.cardNumber,
-            expMonth: month,
-            expYear: `20${year}`,
-            billingAddress: formattedBillingAddress,
-          };
+      // Helper to build payload 
+      const buildCardPayload = (card) => {
+        const [month, year] = card.expDate.split('/');
+        const billingAddress = card.billingSameAsHome 
+          ? updatedData.homeAddress // Use the (already formatted) home address
+          : card.billingAddress;
           
-          let cardEndpoint = `/api/users/${id}/cards`;
-          let cardMethod = 'POST';
-
-          // If a card already exists, PATCH it
-          if (existingCard && existingCard.id) {
-            cardEndpoint = `/api/users/${id}/cards/${existingCard.id}`;
-            cardMethod = 'PATCH';
-          }
-          
-          console.log(`Sending card via ${cardMethod} to ${cardEndpoint}`);
-          const response = await fetch(cardEndpoint, {
-            method: cardMethod,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(cardPayload),
-          });
-          if (!response.ok) throw new Error('Failed to save payment card.');
-
-        // Case 2: User unchecked the box, and a card *did* exist
-        } else if (!userWantsToSaveCard && existingCard) {
-          console.log(`Deleting card at /api/users/${id}/cards/${existingCard.id}`);
-          const response = await fetch(`/api/users/${id}/cards/${existingCard.id}`, {
-            method: 'DELETE'
-          });
-          if (!response.ok) throw new Error('Failed to delete payment card.');
+        const formattedBillingAddress = formatAddressForAPI(billingAddress);
+        
+        // This payload matches your 'CardRequest' DTO
+        const payload = {
+          brand: card.cardType,
+          expMonth: month,
+          expYear: `20${year}`,
+          billingAddress: formattedBillingAddress,
+        };
+        
+        // Only add 'cardNumber' if the user entered one
+        // This assumes PATCH can handle partial updates
+        if (card.cardNumber) {
+          payload.cardNumber = card.cardNumber;
         }
-        // Case 3: User doesn't want card, and had no card. Do nothing.
+        
+        return payload;
+      };
+      
+      // Run DELETE operations 
+      for (const card of cardsToDelete) {
+        try {
+          console.log(`Deleting card: ${card.id}`);
+          const response = await fetch(`/api/users/${id}/cards/${card.id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(false)
+          });
+          if (!response.ok) throw new Error(`Failed to delete card ${card.id}`);
+        } catch (err) {
+          console.error(err);
+          alert(err.message);
+          updateFailed = true;
+        }
+      }
 
-      } catch (error) {
-        console.error(error);
-        alert(error.message);
-        updateFailed = true;
+      // Run ADD operations
+      for (const card of cardsToAdd) {
+        try {
+          console.log("Adding new card...");
+          const payload = buildCardPayload(card);
+          if (!payload.cardNumber) { // New cards MUST have a number
+             throw new Error("New card is missing a card number.");
+          }
+          
+          const response = await fetch(`/api/users/${id}/cards`, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error('Failed to add new card.');
+        } catch (err) {
+          console.error(err);
+          alert(err.message);
+          updateFailed = true;
+        }
+      }
+
+      //  Run UPDATE operations 
+      for (const card of cardsToUpdate) {
+        try {
+          console.log(`Updating card: ${card.id}`);
+          const payload = buildCardPayload(card);
+          
+          const response = await fetch(`/api/users/${id}/cards/${card.id}`, {
+            method: 'PATCH',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error(`Failed to update card ${card.id}`);
+        } catch (err) {
+          console.error(err);
+          alert(err.message);
+          updateFailed = true;
+        }
       }
     }
+    
+    
     
     //  Refetch data & go home 
     if (!updateFailed) { 
@@ -312,8 +386,8 @@ export default function App() {
       return (
         <Home 
           onMovieSelect={handleMovieSelect}
-          isLoggedIn={isLoggedIn} // NEW
-          user={currentUser} // NEW
+          isLoggedIn={isLoggedIn} 
+          user={currentUser} 
         />
       );
     } else if (currentPage === 'movie-detail') {
@@ -359,7 +433,7 @@ export default function App() {
         <Login
           onLoginSuccess={handleLoginSuccess}
           onGoForgot={() => setCurrentPage('forgot-password')}
-          onGoSignup={handleGoToRegister} // Re-uses your existing function
+          onGoSignup={handleGoToRegister} // Re-uses existing function
         />
       );
     } else if (currentPage === 'forgot-password') {
@@ -385,7 +459,7 @@ export default function App() {
     <div style={appStyle}>
       <HomeHeader 
         isLoggedIn={isLoggedIn} 
-        onLoginClick={handleLoginClick} // NEW
+        onLoginClick={handleLoginClick} 
         onLogoutClick={handleLogout} 
         onRegisterClick={handleGoToRegister}
         onProfileClick={handleGoToProfile}

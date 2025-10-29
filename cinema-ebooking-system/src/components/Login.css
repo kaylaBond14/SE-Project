@@ -1,5 +1,4 @@
 /* ---- Login Page Styling ---- */
-
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -82,7 +81,7 @@ input[type="password"] {
   padding: 12px;
   font-size: 16px;
   font-weight: 600;
-  background-color: #1565c0;
+  background-color: #d51613;
   color: white;
   border: none;
   border-radius: 8px;
@@ -91,7 +90,7 @@ input[type="password"] {
 }
 
 .login-btn:hover {
-  background-color: #0d47a1;
+  background-color: #751306;
 }
 
 .signup-text {
