@@ -18,7 +18,7 @@ const AdminDashboard = () => (
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
   // This is a simple way to manage navigation without using a routing library.
-  const [currentPage, setCurrentPage] = useState('home');
+  const [currentPage, setCurrentPage] = useState('home'); 
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
@@ -26,6 +26,19 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Add this useEffect to check for an existing session on app load 
+  useEffect(() => {
+    const token = localStorage.getItem('jwtToken');
+    const userId = localStorage.getItem('userId'); // Get the saved user ID
+
+    if (token && userId) {
+      console.log('Found existing session, fetching profile...');
+      setIsLoggedIn(true);
+      setCurrentUserId(userId); // This will trigger the *other* useEffect to fetch the profile
+    }
+    // The empty array [] means this runs only ONCE when the app first loads
+  }, []); 
 
   // Helper function to get auth headers
   // This reads the token that Login.js saved to localStorage
@@ -72,8 +85,11 @@ export default function App() {
   // This function is called by the Login component on a successful login
   const handleLoginSuccess = (userData) => { // Expects { id, role }
     setIsLoggedIn(true);
-    setCurrentUserId(userData.id); // This will trigger your profile fetch
+    setCurrentUserId(userData.userId); // This will trigger your profile fetch
     
+    // Save the user's ID to localStorage ***
+    localStorage.setItem('userId', userData.userId);
+
     // Handle routing based on user role
     if (userData.role === 'admin') {
       setCurrentPage('admin-dashboard');
@@ -87,7 +103,8 @@ export default function App() {
     setIsLoggedIn(false); 
     setCurrentUser(null); 
     setCurrentUserId(null); 
-    localStorage.removeItem('jwtToken'); // NEW: Clear the token on logout
+    localStorage.removeItem('jwtToken');
+    localStorage.removeItem('userId'); // Clear the saved user ID 
     setCurrentPage('home'); 
   };
 
@@ -114,8 +131,8 @@ export default function App() {
       let addressData = null;
       try {
         const addressResponse = await fetch(`/api/users/${id}/address`, {
-          method: 'GET', // UPDATED
-          headers: getAuthHeaders(false) // UPDATED
+          method: 'GET', 
+          headers: getAuthHeaders(false) 
         });
         if (addressResponse.ok) {
           addressData = await addressResponse.json();
@@ -128,8 +145,8 @@ export default function App() {
       let cardsData = [];
       try {
         const cardsResponse = await fetch(`/api/users/${id}/cards`, {
-          method: 'GET', // UPDATED
-          headers: getAuthHeaders(false) // UPDATED
+          method: 'GET', 
+          headers: getAuthHeaders(false) 
         });
         if (cardsResponse.ok) {
           cardsData = await cardsResponse.json();
@@ -139,8 +156,6 @@ export default function App() {
       }
       
       // Combine all data into one user object
-      //  API returns user data, but not address or payment.
-      //  add mock data for those parts so the form doesn't break.
       const fullUserData = { 
         ...userData, 
         address: addressData,     // This will be an object or null
@@ -158,29 +173,28 @@ export default function App() {
 
   // Helper function to format address for the API
   const formatAddressForAPI = (addr) => {
-    // UPDATED: Now expects 'zip' from form state
+    // Now expects 'zip' from form state
     if (!addr.street || !addr.city || !addr.state || !addr.zip) {
       return null;
     }
     return {
-      label: "Home", // Or "Billing" - backend might not use this
+      label: "Home", 
       street: addr.street,
       city: addr.city,
       state: addr.state,
-      postalCode: addr.zip, // Map zip -> postalCode
+      postalCode: addr.zip, 
       country: "USA",
     };
   };
   
   // This function now calls  backend API controllers.
-  // UPDATED: This function is now completely rewritten
   const handleProfileUpdate = async (updatedData) => { //(added async)
     if (!currentUser) return; //(Safety check)
     
     const id = currentUser.id; 
     let updateFailed = false; 
 
-    // 1. Update Basic Info (firstName, lastName, phone, promoOptIn) 
+    // Update Basic Info (firstName, lastName, phone, promoOptIn) 
     const basicsToUpdate = { 
       firstName: updatedData.firstName,
       lastName: updatedData.lastName, 
@@ -202,7 +216,7 @@ export default function App() {
       updateFailed = true; 
     } 
 
-    // 2. Update Password (if provided)
+    //  Update Password (if provided)
     if (!updateFailed && updatedData.newPassword) { 
       const passwordRequest = { 
         currentPassword: updatedData.currentPassword, 
@@ -228,7 +242,7 @@ export default function App() {
       } 
     } 
     
-    // 3. API logic for Address
+    // API logic for Address
     if (!updateFailed && updatedData.homeAddress) {
       const formattedAddress = formatAddressForAPI(updatedData.homeAddress);
       if (formattedAddress) {
@@ -257,7 +271,7 @@ export default function App() {
       }
     }
     
-    // --- 4. Full API logic for MULTIPLE Payment Cards ---
+    // Full API logic for MULTIPLE Payment Cards 
     if (!updateFailed) {
       const formCards = updatedData.paymentCards; // Array from EditProfile
       const existingCards = currentUser.paymentCards || [];
@@ -271,7 +285,7 @@ export default function App() {
         (existing) => !cardIdsToUpdate.includes(existing.id)
       );
 
-      // --- Helper to build payload ---
+      // Helper to build payload 
       const buildCardPayload = (card) => {
         const [month, year] = card.expDate.split('/');
         const billingAddress = card.billingSameAsHome 
@@ -297,7 +311,7 @@ export default function App() {
         return payload;
       };
       
-      // --- Run DELETE operations ---
+      // Run DELETE operations 
       for (const card of cardsToDelete) {
         try {
           console.log(`Deleting card: ${card.id}`);
@@ -313,7 +327,7 @@ export default function App() {
         }
       }
 
-      // --- Run ADD operations ---
+      // Run ADD operations
       for (const card of cardsToAdd) {
         try {
           console.log("Adding new card...");
@@ -335,7 +349,7 @@ export default function App() {
         }
       }
 
-      // --- Run UPDATE operations ---
+      //  Run UPDATE operations 
       for (const card of cardsToUpdate) {
         try {
           console.log(`Updating card: ${card.id}`);
@@ -354,10 +368,10 @@ export default function App() {
         }
       }
     }
-    // --- END OF NEW PAYMENT LOGIC ---
     
     
-    //  5. Refetch data & go home 
+    
+    //  Refetch data & go home 
     if (!updateFailed) { 
       alert('Profile Saved!'); 
       fetchUserProfile(id); // Re-fetch the user to get the confirmed changes 
