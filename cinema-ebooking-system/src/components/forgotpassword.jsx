@@ -45,7 +45,7 @@ export default function ForgotPassword({ onGoBack }) {
 
       if (response.ok) {
         // Success!
-        setMessage('Password reset successfully! You can now go back to login.');
+        setMessage('Password request sent. Please check your email and click the link.');
         setIsError(false);
         // Clear the form on success
         setEmail('');
