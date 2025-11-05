@@ -11,11 +11,83 @@ import ResetPassword from './components/resetpassword.jsx';
 
 
 // Component for the admin dashboard
-const AdminDashboard = () => (
-  <div style={{ padding: '2rem', textAlign: 'center' }}>
-    <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>Admin Dashboard</h1>
-  </div>
-);
+const AdminDashboard = () => {
+  // Style for the outer container
+  const containerStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap', // Added to help if you add more cards
+    gap: '2rem', // Space between cards
+    marginTop: '2rem'
+  };
+
+  // Style for each card
+  const cardStyle = {
+    backgroundColor: '#3a3a3a', // A slightly lighter dark shade
+    padding: '1.5rem 2rem',
+    borderRadius: '12px',
+    width: '300px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    cursor: 'pointer',
+    transition: 'transform 0.2s'
+  };
+  
+  // Style for card titles
+  const cardTitleStyle = {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    marginBottom: '0.5rem'
+  };
+
+  // Style for card descriptions
+  const cardDescStyle = {
+    fontSize: '1rem',
+    color: '#ccc', // Lighter text for description
+    minHeight: '40px'
+  };
+
+  return (
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>
+        Admin Dashboard
+      </h1>
+
+      <div style={containerStyle}>
+        {/* Manage Movies Card */}
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Movies') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Movies</h2>
+          <p style={cardDescStyle}>Add, edit, or remove movie listings and showtimes.</p>
+        </div>
+
+        {/* Manage Promotions Card */}
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Promotions') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Promotions</h2>
+          <p style={cardDescStyle}>Create, update, and manage all active promotions.</p>
+        </div>
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Users') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Users</h2>
+          <p style={cardDescStyle}>Search, view, and edit user accounts and permissions.</p>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
@@ -93,14 +165,61 @@ export default function App() {
     localStorage.setItem('userId', userData.userId);
 
     // Handle routing based on user role
-    if (userData.role === 'admin') {
+    if (userData.role === 'Admin') {
       setCurrentPage('admin-dashboard');
     } else {
       setCurrentPage('home');
     }
   };
 
-  // This logs the user out and clears their data
+
+  
+  const handleLogout = async () => {
+    console.log("Log out button clicked...");
+    try {
+      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('jwtToken');
+
+      if (!userId) {
+        console.error("No userId found in localStorage — cannot log out properly.");
+        return;
+      }
+
+      // Send logout request to backend
+      const response = await fetch('api/users/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // optional if backend uses JWT
+        },
+        body: JSON.stringify({ userId: parseInt(userId) })
+      });
+      console.log("Logout request sent to backend.");
+
+      if (!response.ok) {
+        console.error("Failed to log out:", await response.text());
+        return;
+      }
+
+      // Clear local data and reset frontend state
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      setCurrentUserId(null);
+      localStorage.removeItem('jwtToken');
+      localStorage.removeItem('userId');
+      console.log("Cleared local session data.");
+      setCurrentPage('home');
+
+      console.log("User logged out and status set to Inactive.");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+  
+
+
+
+  /**   This logs the user out and clears their data
   const handleLogout = () => { 
     setIsLoggedIn(false); 
     setCurrentUser(null); 
@@ -109,6 +228,8 @@ export default function App() {
     localStorage.removeItem('userId'); // Clear the saved user ID 
     setCurrentPage('home'); 
   };
+  */
+  
 
   // This 'useEffect' hook runs automatically whenever 'currentUserId' changes.
   useEffect(() => { 
@@ -163,6 +284,12 @@ export default function App() {
         address: addressData,     // This will be an object or null
         paymentCards: cardsData,  // This will be an array
       }; 
+
+    // This checks if we are on the initial page load (currentPage is 'home')
+    // and navigates to the dashboard if the fetched user is an admin.
+    if (currentPage === 'home' && fullUserData.userTypeName === 'Admin') {
+      setCurrentPage('admin-dashboard');
+    }
 
       setCurrentUser(fullUserData); 
       console.log('Fetched full user profile:', fullUserData); 

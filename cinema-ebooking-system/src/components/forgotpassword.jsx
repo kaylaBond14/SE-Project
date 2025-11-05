@@ -20,7 +20,7 @@ export default function ForgotPassword({ onGoBack }) {
         body: JSON.stringify({ email }),
       });
 
-      // Backend usually returns 202 Accepted even if email doesn’t exist → treat as success
+      // ✅ Backend often returns 202 Accepted even if email doesn’t exist → treat as success
       if (res.ok || res.status === 202) {
         setSent(true);
       } else {

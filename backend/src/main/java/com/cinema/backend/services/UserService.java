@@ -7,11 +7,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.cinema.backend.dto.*;
-import com.cinema.backend.model.Address;
+//import com.cinema.backend.model.Address;
+import com.cinema.backend.model.HomeAddress;
+import com.cinema.backend.model.BillingAddress;
 import com.cinema.backend.model.PaymentCard;
 import com.cinema.backend.model.UserStatus;
 import com.cinema.backend.model.UserType;
-import com.cinema.backend.repository.AddressRepository;
+//import com.cinema.backend.repository.AddressRepository;
+import com.cinema.backend.repository.HomeAddressRepository;
+import com.cinema.backend.repository.BillingAddressRepository;
 import com.cinema.backend.repository.PaymentCardRepository;
 import com.cinema.backend.repository.UserStatusRepository; 
 import com.cinema.backend.repository.UserTypeRepository;
@@ -34,7 +38,9 @@ public class UserService {
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private final AddressRepository addressRepository;
+    //private final AddressRepository addressRepository;
+    private final HomeAddressRepository homeAddressRepository;
+    private final BillingAddressRepository billingAddressRepository;
     private final PaymentCardRepository cardRepository;
     private final UserStatusRepository statusRepository;
     private final UserTypeRepository typeRepository;
@@ -47,7 +53,9 @@ public class UserService {
                 UserRepository users, 
                 PasswordEncoder passwordEncoder,
                 UserRepository userRepository,
-                AddressRepository addressRepository,
+                //AddressRepository addressRepository,
+                HomeAddressRepository homeAddressRepository,
+                BillingAddressRepository billingAddressRepository,
                 PaymentCardRepository cardRepository,
                 UserStatusRepository statusRepository,
                 UserTypeRepository typeRepository
@@ -55,7 +63,9 @@ public class UserService {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
-        this.addressRepository = addressRepository;
+        //this.addressRepository = addressRepository;
+        this.homeAddressRepository = homeAddressRepository;
+        this.billingAddressRepository = billingAddressRepository;
         this.cardRepository = cardRepository;
         this.statusRepository = statusRepository;
         this.typeRepository = typeRepository;
@@ -71,6 +81,18 @@ public class UserService {
     public User getByEmail(String email) {
         return users.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + email));
+    }
+
+    @Transactional
+    public void setStatus(Long userId, String statusName) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+
+        UserStatus status = statusRepository.findByStatusName(statusName)
+            .orElseThrow(() -> new IllegalStateException("Status not found: " + statusName));
+
+        user.setStatus(status);
+        userRepository.save(user);
     }
 
     /**
@@ -163,9 +185,11 @@ public class UserService {
         userRepository.save(u);
 
         // Update: upsert the ONE address, then saveAndFlush so it has a real ID 
-        Address savedAddress = null;
+        HomeAddress savedHome = null;
+        Addr homeFields = null;
         if (req.address() != null) {
-            savedAddress = upsertSingleAddress(u, req.address()); // ensures addresses.id exists now
+            savedHome = upsertHomeAddress(u, req.address());
+            homeFields = normalize(savedHome);
         }
 
         // optional cards (0..3)
@@ -187,14 +211,16 @@ public class UserService {
                 pc.setExpYear((short) c.expYear());
                 pc.setToken(pan);      // AES-GCM @Convert encrypts on save
                 
-                AddressRequest billingReq = c.addressReq();
-                if (savedAddress != null && billingReq != null && addressesEqual(billingReq, req.address())) {
-                    // billing is same as home → reuse the already-saved home row (no new insert)
-                    pc.setBillingAddress(savedAddress);
-                } else {
-                    // otherwise keep your current behavior (may create the address)
-                    pc.setBillingAddress(createAddress(u.getId(), billingReq));
+                Addr billingFields = (c.addressReq() != null) ? normalize(c.addressReq())
+                          : (homeFields != null ? homeFields : null);
+                
+                if (billingFields == null) {
+                    throw new IllegalArgumentException("Billing address is required (or provide a home address to reuse).");
                 }
+                
+                
+                BillingAddress billing = findOrCreateBillingAddress(u.getId(), billingFields);
+                pc.setBillingAddress(billing);        
 
             
                 //pc.setBillingAddress(createAddress(u.getId(), c.addressReq()));
@@ -227,31 +253,32 @@ public class UserService {
     }
 
     // Address ops (1 per user)
-    public Address getAddress(Long userId) {
-        return addressRepository.findByUserId(userId).orElseThrow(() -> new EntityNotFoundException("No address"));
+    //UPDATED WITH HOME ADDRESS
+    public HomeAddress getHomeAddress(Long userId) {
+        return homeAddressRepository.findByUserId(userId)
+            .orElseThrow(() -> new EntityNotFoundException("No home address"));
     }
 
-    public Address createAddress(Long userId, AddressRequest req) {
+    public HomeAddress createOrReplaceHomeAddress(Long userId, AddressRequest req) {
         var user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
-        // enforce single address per user
-        if (addressRepository.findByUserId(userId).isPresent()) {
-            throw new IllegalStateException("Address already exists for user");
-        }
-        Address a = new Address();
-        a.setUser(user);
-        a.setLabel(req.label() == null ? "home" : req.label());
-        a.setStreet(req.street());
-        a.setCity(req.city());
-        a.setState(req.state());
-        a.setPostalCode(req.postalCode());
-        a.setCountry(req.country() == null ? "USA" : req.country());
-        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
-        return addressRepository.save(a);
-    }
+        HomeAddress h = homeAddressRepository.findByUserId(userId).orElseGet(() -> {
+            HomeAddress x = new HomeAddress();
+            x.setUser(user);
+            x.setLabel(req.label() == null ? "home" : req.label());
+            return x;
+        });
+        h.setStreet(req.street());
+        h.setCity(req.city());
+        h.setState(req.state());
+        h.setPostalCode(req.postalCode());
+        h.setCountry((req.country() == null || req.country().isBlank()) ? "USA" : req.country());
+        emailService.sendProfileEditedEmail(user.getEmail());
+        return homeAddressRepository.save(h);
+}
 
-    public Address patchAddress(Long userId, Long addressId, AddressRequest req) {
+    public HomeAddress patchHomeAddress(Long userId, Long homeId, AddressRequest req) {
         var user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
-        Address a = addressRepository.findById(addressId).orElseThrow(EntityNotFoundException::new);
+        HomeAddress a = homeAddressRepository.findById(homeId).orElseThrow(EntityNotFoundException::new);
         if (!a.getUser().getId().equals(user.getId())) throw new IllegalArgumentException("Address not owned by user");
 
         if (req.label() != null) a.setLabel(req.label());
@@ -262,9 +289,10 @@ public class UserService {
         if (req.country() != null) a.setCountry(req.country());
 
         emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
-        return addressRepository.save(a);
+        return homeAddressRepository.save(a);
     }
 
+    
     // Cards
 
 
@@ -280,9 +308,31 @@ public class UserService {
             throw new IllegalArgumentException("Card limit exceeded (max 3).");
         }
 
-        Address userAddress = addressRepository.findByUserId(userId).orElse(null);
+        // choose billing input: req.addressReq() or user's saved home
+        Addr billingFields = (req.addressReq() != null) ? normalize(req.addressReq())
+                            : homeAddressRepository.findByUserId(userId).map(this::normalize).orElse(null);
+
+        if (billingFields == null) {
+            throw new IllegalArgumentException("Billing address required (or set a home address to reuse).");
+        }
+
+        String pan = normalizePan(req.token());
+        assertValidPan(pan);
+        String last4 = pan.substring(pan.length() - 4);
+
+        BillingAddress billing = findOrCreateBillingAddress(userId, billingFields);
+
+        PaymentCard card = new PaymentCard();
+        card.setUser(user);
+        card.setBrand(req.brand());
+        card.setToken(pan);
+        card.setLast4(last4);
+        card.setExpMonth((short) req.expMonth());
+        card.setExpYear((short) req.expYear());
+        card.setBillingAddress(billing);
+
         emailService.sendProfileEditedEmail(user.getEmail());
-        return saveCardForUser(user, userAddress, req);
+        return cardRepository.save(card);
     }
 
 
@@ -294,8 +344,11 @@ public class UserService {
         if (req.expMonth() > 0) pc.setExpMonth((short) req.expMonth());
         if (req.expYear() > 0)  pc.setExpYear((short) req.expYear());
 
-        Address usersAddress = addressRepository.findByUserId(userId).orElse(null);
-        pc.setBillingAddress(usersAddress);
+        if (req.addressReq() != null) {
+            Addr billingFields = normalize(req.addressReq());
+            BillingAddress billing = findOrCreateBillingAddress(userId, billingFields);
+            pc.setBillingAddress(billing);
+        }
         emailService.sendProfileEditedEmail(user.getEmail());
         return cardRepository.save(pc);
     }
@@ -310,10 +363,48 @@ public class UserService {
 
     //Helpers
 
+    // Address Helpers
+    private String norm(String s) { return s == null ? "" : s.trim().replaceAll("\\s+", " "); }
+    private String normState(String s) { return norm(s).toUpperCase(); }
+    private String normCountry(String s){ return norm(s).toUpperCase(); }
+    private String normZip(String s)     { return norm(s).replaceAll("[\\s-]", ""); }
+
+    private record Addr(String street, String city, String state, String postal, String country) {}
+
+    private Addr normalize(AddressRequest a) {
+        if (a == null) return null;
+        String country = (a.country() == null || a.country().isBlank()) ? "USA" : a.country();
+        return new Addr(
+            norm(a.street()), norm(a.city()), normState(a.state()),
+            normZip(a.postalCode()), normCountry(country)
+        );
+    }
+
+    private Addr normalize(HomeAddress h) {
+        if (h == null) return null;
+        String country = (h.getCountry() == null || h.getCountry().isBlank()) ? "USA" : h.getCountry();
+        return new Addr(
+            norm(h.getStreet()), norm(h.getCity()), normState(h.getState()),
+            normZip(h.getPostalCode()), normCountry(country)
+        );
+    }
+
+    /** 
+    private boolean same(Addr a, Addr b) {
+        if (a == null || b == null) return false;
+        return a.street().equalsIgnoreCase(b.street())
+            && a.city().equalsIgnoreCase(b.city())
+            && a.state().equalsIgnoreCase(b.state())
+            && a.postal().equalsIgnoreCase(b.postal())
+            && a.country().equalsIgnoreCase(b.country());
+    }
+    
+
+
     private static boolean eq(String a, String b) {
         return a != null && b != null && a.trim().equalsIgnoreCase(b.trim());
     }   
-
+    /** 
     private static boolean addressesEqual(AddressRequest a, AddressRequest b) {
         if (a == null || b == null) return false;
         return eq(a.street(), b.street())
@@ -326,35 +417,51 @@ public class UserService {
 
 
         /**
+         * CHANGED FOR HOME ADDRESS NOW
      * Ensures the user has ONE address row.
      * If one exists, update it. If not, create one.
      * saveAndFlush forces the database to assign the address ID immediately
      * so cards can safely reference it right after.
      */
-    private Address upsertSingleAddress(User user, AddressRequest req) {
-        Address address = addressRepository.findByUserId(user.getId())
-                .orElseGet(() -> {
-                    Address a = new Address();
-                    a.setUser(user);
-                    return a;
-                });
+    private HomeAddress upsertHomeAddress(User user, AddressRequest req) {
+        HomeAddress h = homeAddressRepository.findByUserId(user.getId())
+            .orElseGet(() -> {
+                HomeAddress x = new HomeAddress();
+                x.setUser(user);
+                x.setLabel("home");
+                return x;
+            });
 
-        if (req.label() != null) address.setLabel(req.label());
-        if (req.street() != null) address.setStreet(req.street());
-        if (req.city() != null) address.setCity(req.city());
-        if (req.state() != null) address.setState(req.state());
-        if (req.postalCode() != null) address.setPostalCode(req.postalCode());
-        if (req.country() != null) address.setCountry(req.country());
-        if (address.getCountry() == null) address.setCountry("USA");
+        if (req.label() != null && !req.label().isBlank()) h.setLabel(req.label());
+        h.setStreet(req.street());
+        h.setCity(req.city());
+        h.setState(req.state());
+        h.setPostalCode(req.postalCode());
+        h.setCountry((req.country() == null || req.country().isBlank()) ? "USA" : req.country());
 
-        // IMPORTANT: must FLUSH to ensure id exists for card FK use
-        return addressRepository.saveAndFlush(address);
-    }
+        return homeAddressRepository.saveAndFlush(h); // ensure id immediately
+    }   
+
+    private BillingAddress findOrCreateBillingAddress(Long userId, Addr a) {
+        return billingAddressRepository
+            .findByUserIdAndStreetAndCityAndStateAndPostalCodeAndCountry(
+                userId, a.street(), a.city(), a.state(), a.postal(), a.country())
+            .orElseGet(() -> {
+                BillingAddress b = new BillingAddress();
+                b.setUser(userRepository.getReferenceById(userId));
+                b.setStreet(a.street());
+                b.setCity(a.city());
+                b.setState(a.state());
+                b.setPostalCode(a.postal());
+                b.setCountry(a.country());
+                return billingAddressRepository.save(b);
+            });
+}
 
     /**
      * Saves a card and links it to the user’s SINGLE address row.
-     */
-    private PaymentCard saveCardForUser(User user, Address userAddress, CardRequest req) {
+     
+    private PaymentCard saveCardForUser(User user, homeAddress homeAddress, CardRequest req) {
         String pan = normalizePan(req.token());
         assertValidPan(pan);
         String last4 = pan.substring(pan.length() - 4);
@@ -372,6 +479,7 @@ public class UserService {
 
         return cardRepository.save(card);
     }
+        */
 
     //Card Helpers
     private static String normalizePan(String s) {
