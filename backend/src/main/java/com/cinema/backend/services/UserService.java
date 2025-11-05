@@ -17,9 +17,8 @@ import com.cinema.backend.repository.UserStatusRepository;
 import com.cinema.backend.repository.UserTypeRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import java.util.List;
-import com.cinema.backend.services.EmailService;
+//import com.cinema.backend.services.EmailService;
 import com.cinema.backend.utils.JwtTokenUtil;
 
 
@@ -30,6 +29,7 @@ import com.cinema.backend.utils.JwtTokenUtil;
 @Service
 @Transactional
 public class UserService {
+
 
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
@@ -150,11 +150,11 @@ public class UserService {
         u.setAccountSuspended(false);
 
         // default status/type
-        UserStatus active = statusRepository.findByStatusName("Active")
+        UserStatus inactive = statusRepository.findByStatusName("Inactive")
                 .orElseThrow(() -> new IllegalStateException("Missing lookup: user_statuses.Active"));
         UserType customer = typeRepository.findByTypeName("Customer")
                 .orElseThrow(() -> new IllegalStateException("Missing lookup: user_types.Customer"));
-        u.setStatus(active);
+        u.setStatus(inactive);
         u.setUserType(customer);
 
         // tokens per schema (NOT NULL)
@@ -162,53 +162,61 @@ public class UserService {
         u.setVerificationToken("pending");
         userRepository.save(u);
 
-        // optional address
+        // Update: upsert the ONE address, then saveAndFlush so it has a real ID 
+        Address savedAddress = null;
         if (req.address() != null) {
-            Address a = new Address();
-            a.setUser(u);
-            a.setLabel(req.address().label() == null ? "home" : req.address().label());
-            a.setStreet(req.address().street());
-            a.setCity(req.address().city());
-            a.setState(req.address().state());
-            a.setPostalCode(req.address().postalCode());
-            a.setCountry(req.address().country() == null ? "USA" : req.address().country());
-            addressRepository.save(a);
+            savedAddress = upsertSingleAddress(u, req.address()); // ensures addresses.id exists now
         }
 
         // optional cards (0..3)
-if (req.cards() != null && !req.cards().isEmpty()) {
-    for (CardRequest c : req.cards()) {
-        if (cardRepository.countByUserId(u.getId()) >= 3) {
-            throw new IllegalArgumentException("Card limit exceeded (max 3).");
-        }
-
-        String pan = normalizePan(c.token());  // token carries PAN 
-        assertValidPan(pan);
-        String last4 = pan.substring(pan.length() - 4);
-
-        PaymentCard pc = new PaymentCard();
-        pc.setUser(u);
-        pc.setBrand(c.brand());
-        pc.setLast4(last4);
-        pc.setExpMonth((short) c.expMonth());
-        pc.setExpYear((short) c.expYear());
-        pc.setToken(pan);                      // AES-GCM @Convert encrypts on save
-
-        if (c.billingAddrId() != null) {
-            addressRepository.findById(c.billingAddrId()).ifPresent(addr -> {
-                if (!addr.getUser().getId().equals(u.getId())) {
-                    throw new IllegalArgumentException("Billing address does not belong to user");
+        if (req.cards() != null && !req.cards().isEmpty()) {
+            for (CardRequestDuringRegister c : req.cards()) {
+                if (cardRepository.countByUserId(u.getId()) >= 3) {
+                    throw new IllegalArgumentException("Card limit exceeded (max 3).");
                 }
-                pc.setBillingAddress(addr);
-            });
-        } else {
-            // optional: auto-use the user's single address if one exists
-            addressRepository.findByUserId(u.getId()).ifPresent(pc::setBillingAddress);
-        }
+ 
+                String pan = normalizePan(c.token());
+                assertValidPan(pan);
+                String last4 = pan.substring(pan.length() - 4);
 
-        cardRepository.save(pc);
-    }
-}
+                PaymentCard pc = new PaymentCard();
+                pc.setUser(u);
+                pc.setBrand(c.brand());
+                pc.setLast4(last4);
+                pc.setExpMonth((short) c.expMonth());
+                pc.setExpYear((short) c.expYear());
+                pc.setToken(pan);      // AES-GCM @Convert encrypts on save
+                
+                AddressRequest billingReq = c.addressReq();
+                if (savedAddress != null && billingReq != null && addressesEqual(billingReq, req.address())) {
+                    // billing is same as home → reuse the already-saved home row (no new insert)
+                    pc.setBillingAddress(savedAddress);
+                } else {
+                    // otherwise keep your current behavior (may create the address)
+                    pc.setBillingAddress(createAddress(u.getId(), billingReq));
+                }
+
+            
+                //pc.setBillingAddress(createAddress(u.getId(), c.addressReq()));
+                
+
+                /*
+                if (c.billingAddrId() != null) {
+                    addressRepository.findById(c.billingAddrId()).ifPresent(addr -> {
+                        if (!addr.getUser().getId().equals(u.getId())) {
+                            throw new IllegalArgumentException("Billing address does not belong to user");
+                        }
+                        pc.setBillingAddress(addr);
+                    });
+                } else {
+                    // optional: auto-use the user's single address if one exists
+                    addressRepository.findByUserId(u.getId()).ifPresent(pc::setBillingAddress);
+                }
+                */
+
+                cardRepository.save(pc);
+            }
+        }
 
         // Send verification email
         String verificationToken = JwtTokenUtil.generateToken(u.getEmail());
@@ -266,39 +274,16 @@ if (req.cards() != null && !req.cards().isEmpty()) {
     }
 
     public PaymentCard addCard(Long userId, CardRequest req) {
-    var user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
+        var user = userRepository.findById(userId).orElseThrow(EntityNotFoundException::new);
 
-    if (cardRepository.countByUserId(userId) >= 3) {
-        throw new IllegalArgumentException("Card limit exceeded (max 3).");
+        if (cardRepository.countByUserId(userId) >= 3) {
+            throw new IllegalArgumentException("Card limit exceeded (max 3).");
+        }
+
+        Address userAddress = addressRepository.findByUserId(userId).orElse(null);
+        emailService.sendProfileEditedEmail(user.getEmail());
+        return saveCardForUser(user, userAddress, req);
     }
-
-    String pan = normalizePan(req.token());   // token carries PAN
-    assertValidPan(pan);
-    String last4 = pan.substring(pan.length() - 4);
-
-    PaymentCard pc = new PaymentCard();
-    pc.setUser(user);
-    pc.setBrand(req.brand());
-    pc.setLast4(last4);
-    pc.setExpMonth((short) req.expMonth());
-    pc.setExpYear((short) req.expYear());
-    pc.setToken(pan);                         // encrypted by @Convert
-
-    if (req.billingAddrId() != null) {
-        addressRepository.findById(req.billingAddrId()).ifPresent(addr -> {
-            if (!addr.getUser().getId().equals(userId)) {
-                throw new IllegalArgumentException("Billing address does not belong to user");
-            }
-            pc.setBillingAddress(addr);
-        });
-    } else {
-        // optional: if user has a single address, use it by default
-        addressRepository.findByUserId(userId).ifPresent(pc::setBillingAddress);
-    }
-
-    emailService.sendProfileEditedEmail(user.getEmail());
-    return cardRepository.save(pc);
-}
 
 
     public PaymentCard patchCard(Long userId, Long cardId, CardRequest req) {
@@ -308,10 +293,10 @@ if (req.cards() != null && !req.cards().isEmpty()) {
 
         if (req.expMonth() > 0) pc.setExpMonth((short) req.expMonth());
         if (req.expYear() > 0)  pc.setExpYear((short) req.expYear());
-        if (req.billingAddrId() != null) {
-            addressRepository.findById(req.billingAddrId()).ifPresent(pc::setBillingAddress);
-        }
-        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
+
+        Address usersAddress = addressRepository.findByUserId(userId).orElse(null);
+        pc.setBillingAddress(usersAddress);
+        emailService.sendProfileEditedEmail(user.getEmail());
         return cardRepository.save(pc);
     }
 
@@ -323,20 +308,84 @@ if (req.cards() != null && !req.cards().isEmpty()) {
         emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
     }
 
+    //Helpers
+
+    private static boolean eq(String a, String b) {
+        return a != null && b != null && a.trim().equalsIgnoreCase(b.trim());
+    }   
+
+    private static boolean addressesEqual(AddressRequest a, AddressRequest b) {
+        if (a == null || b == null) return false;
+        return eq(a.street(), b.street())
+        && eq(a.city(), b.city())
+        && eq(a.state(), b.state())
+        && eq(a.postalCode(), b.postalCode())
+        && eq(a.country() == null ? "USA" : a.country(),
+              b.country() == null ? "USA" : b.country());
+    }
+
+
+        /**
+     * Ensures the user has ONE address row.
+     * If one exists, update it. If not, create one.
+     * saveAndFlush forces the database to assign the address ID immediately
+     * so cards can safely reference it right after.
+     */
+    private Address upsertSingleAddress(User user, AddressRequest req) {
+        Address address = addressRepository.findByUserId(user.getId())
+                .orElseGet(() -> {
+                    Address a = new Address();
+                    a.setUser(user);
+                    return a;
+                });
+
+        if (req.label() != null) address.setLabel(req.label());
+        if (req.street() != null) address.setStreet(req.street());
+        if (req.city() != null) address.setCity(req.city());
+        if (req.state() != null) address.setState(req.state());
+        if (req.postalCode() != null) address.setPostalCode(req.postalCode());
+        if (req.country() != null) address.setCountry(req.country());
+        if (address.getCountry() == null) address.setCountry("USA");
+
+        // IMPORTANT: must FLUSH to ensure id exists for card FK use
+        return addressRepository.saveAndFlush(address);
+    }
+
+    /**
+     * Saves a card and links it to the user’s SINGLE address row.
+     */
+    private PaymentCard saveCardForUser(User user, Address userAddress, CardRequest req) {
+        String pan = normalizePan(req.token());
+        assertValidPan(pan);
+        String last4 = pan.substring(pan.length() - 4);
+
+        PaymentCard card = new PaymentCard();
+        card.setUser(user);
+        card.setBrand(req.brand());
+        card.setToken(pan);
+        card.setLast4(last4);
+        card.setExpMonth((short) req.expMonth());
+        card.setExpYear((short) req.expYear());
+
+        
+        card.setBillingAddress(userAddress);
+
+        return cardRepository.save(card);
+    }
 
     //Card Helpers
     private static String normalizePan(String s) {
         if (s == null) return null;
-        return s.replaceAll("[^0-9]", ""); // drop spaces, dashes
+        return s.replaceAll("[^0-9]", ""); 
     }
 
     private static void assertValidPan(String pan) {
         if (pan == null) throw new IllegalArgumentException("Missing card number");
         if (!pan.matches("\\d{12,19}")) throw new IllegalArgumentException("Invalid card number length");
-        if (!luhnOk(pan)) throw new IllegalArgumentException("Invalid card number (Luhn)");
+        //if (!luhnOk(pan)) throw new IllegalArgumentException("Invalid card number (Luhn)");
     }
 
-    private static boolean luhnOk(String num) {
+    /**private static boolean luhnOk(String num) {
         int sum = 0; boolean alt = false;
         for (int i = num.length() - 1; i >= 0; i--) {
             int n = num.charAt(i) - '0';
@@ -345,6 +394,7 @@ if (req.cards() != null && !req.cards().isEmpty()) {
         }
         return sum % 10 == 0;
     }
+        */
 
 
 }

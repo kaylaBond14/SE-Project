@@ -123,18 +123,37 @@ public class UserController {
     }
 
     // POST /login
-    @PostMapping("/api/login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequest req) {
         User user = userService.getByEmail(req.email());
 
         if (!passwordEncoder.matches(req.password(), user.getPasswordHash())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Invalid email or password");
+        } else if (user.isVerified() == false) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Your account is not verified. Please check your email and click on the verification link.");
         }
 
         String token = JwtTokenUtil.generateToken(user.getEmail());
 
-        return ResponseEntity.ok(new LoginResponse(user.getId(), user.getEmail(), token));
+        String role = (user.getUserType() != null)
+            ? user.getUserType().getTypeName()
+            : "Customer";
+
+        String status = (user.getStatus() != null)
+            ? user.getStatus().getStatusName()
+            : "Active";
+
+        return ResponseEntity.ok(
+            new LoginResponse(
+                user.getId(), 
+                user.getEmail(), 
+                token,
+                role,
+                status
+                )
+        );
     }
 
 

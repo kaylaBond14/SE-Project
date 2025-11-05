@@ -3,14 +3,42 @@ USE ces;
 -- user types
 INSERT INTO user_types (type_name, description) VALUES
 ('Admin', 'System administrator with full access'),
-('Customer', 'Regular customer user'),
-('Employee', 'Cinema employee with limited admin access');
+('Customer', 'Regular customer user');
 
 -- user statuses
 INSERT INTO user_statuses (status_name, description) VALUES
 ('Active', 'Active user with full access'),
 ('Inactive', 'Inactive or unverified user'),
 ('Suspended', 'Suspended user, access denied');
+
+-- admin credintials 
+INSERT INTO users (
+    email,
+    password_hash,
+    first_name,
+    last_name,
+    phone,
+    status_id,
+    user_type_id,
+    is_verified,
+    reset_token,
+    verification_token,
+    account_suspended,
+    promo_opt_in
+) VALUES (
+    'cinemaebookingteam2@gmail.com',
+    '$2a$10$LKsImqbKJx37mZoF8bcfEOIKbtuIqiRIP.NuX5Fhp9l3gaJWtUIve', -- Team2admin! as password
+    'System',
+    'Administrator',
+    '000-000-0000',
+    1,
+    1,
+    TRUE,
+    '',
+    '',
+    FALSE,
+    FALSE
+);
 
 -- Insert movie categories/genres for filtering
 INSERT IGNORE INTO categories (title) VALUES
@@ -46,9 +74,9 @@ INSERT INTO fees (name, amount, effective_on, active) VALUES
 
 -- promotions
 INSERT INTO promotions (code, description, discount_type, discount_value, min_purchase_amount, max_uses, starts_on, ends_on, active) VALUES
-('WELCOME10', '10% off for new customers', 'PERCENT', 10, 1000, NULL, '2024-01-01', '2025-12-31', TRUE),
-('SAVE5', '$5 off orders over $20', 'FIXED', 500, 2000, NULL, '2024-01-01', '2025-12-31', TRUE),
-('EARLYBIRD', '15% off matinee shows', 'PERCENT', 15, 0, NULL, '2024-01-01', '2025-12-31', TRUE);
+('WELCOME10', '10% off for new customers', 'PERCENT', 10, 1000, NULL, '2024-01-01', '2025-12-31', TRUE);
+-- ('SAVE5', '$5 off orders over $20', 'FIXED', 500, 2000, NULL, '2024-01-01', '2025-12-31', TRUE),
+-- ('EARLYBIRD', '15% off matinee shows', 'PERCENT', 15, 0, NULL, '2024-01-01', '2025-12-31', TRUE);
 
 -- pricing
 INSERT INTO ticket_prices (age_classification, price, effective_on) VALUES

@@ -70,12 +70,12 @@ export default function HomeHeader({
             > 
               Login
             </button> 
-            <button 
+            {/* <button 
               style={buttonStyle}
               onClick={onRegisterClick} 
             >
               Register
-            </button>
+            </button> */}
           </> 
         )} 
       </div>

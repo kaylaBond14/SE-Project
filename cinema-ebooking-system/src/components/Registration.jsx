@@ -34,21 +34,6 @@ export default function Registration({ onGoBack }) {
   // State to show/hide optional payment
   const [showPayment, setShowPayment] = useState(false);
 
-  // Payment State (These are no longer used, replaced by paymentCards array)
-  // const [cardType, setCardType] = useState('visa');
-  // const [cardNumber, setCardNumber] = useState('');
-  // const [expDate, setExpDate] = useState(''); // This will be "MM/YY"
-  
-  // State for billing address (This is no longer used, replaced by billingAddress inside each card)
-  // const [billingAddress, setBillingAddress] = useState({
-  //   street: '',
-  //   city: '',
-  //   state: '',
-  //   zip: '',
-  // });
-  // State to check if billing is same as home (This is no longer used)
-  // const [billingSameAsHome, setBillingSameAsHome] = useState(false);
-
   // This state IS used for the multi-card form
   const [paymentCards, setPaymentCards] = useState([]);
   
@@ -65,7 +50,7 @@ export default function Registration({ onGoBack }) {
       return null; // Don't send incomplete address
     }
     return {
-      label: "Home",
+      label: "Home", 
       street: addr.street,
       city: addr.city,
       state: addr.state,
@@ -123,7 +108,6 @@ export default function Registration({ onGoBack }) {
           return;
         }
 
-        // Add validation for card number (must be at least 4 digits to get last4)
         if (card.cardNumber.length < 4) {
           alert("Please enter a valid card number for all cards.");
           return;
@@ -131,7 +115,10 @@ export default function Registration({ onGoBack }) {
 
         const [month, year] = card.expDate.split('/');
         
-        // This validates the billing address but doesn't send it, per your setup
+        const addressToValidate = card.billingSameAsHome ? homeAddress : card.billingAddress;
+        console.log("Validating this address:", addressToValidate);
+
+        // This validates and formats the billing address
         const formattedBillingAddress = formatAddressForAPI(
           card.billingSameAsHome ? homeAddress : card.billingAddress
         );
@@ -141,17 +128,19 @@ export default function Registration({ onGoBack }) {
           return;
         }
 
-        // Get last4 from the card number
         const last4 = card.cardNumber.slice(-4);
         
+      
+        // It now uses 'addressReq' to match CardRequestDuringRegister DTO
         const payload = {
           brand: card.cardType,
-          last4: last4,                     // DTO expects 'last4'
-          expMonth: parseInt(month),        // DTO expects 'int'
-          expYear: parseInt(`20${year}`),   // DTO expects 'int'
-          billingAddrId: null,              // DTO expects 'Long billingAddrId' (null is ok)
-          token: card.cardNumber            // DTO expects 'token' (the full PAN)
+          last4: last4,
+          expMonth: parseInt(month),
+          expYear: parseInt(`20${year}`),
+          addressReq: formattedBillingAddress, 
+          token: card.cardNumber
         };
+        
         
         paymentCardPayloads.push(payload); // Add this card's payload to the array
       }
@@ -170,14 +159,11 @@ export default function Registration({ onGoBack }) {
       // Send formatted address (will be null if not filled)
       address: formatAddressForAPI(homeAddress),
 
-
       // Send the entire array of card payloads
       cards: paymentCardPayloads.length > 0 ? paymentCardPayloads : null, 
      
     };
     
-    //  remove the address/payment fields if they are null
-    // don't send empty objects to the backend.
     if (!registrationPayload.address) delete registrationPayload.address;
     if (!registrationPayload.cards) delete registrationPayload.cards; 
 
@@ -198,9 +184,9 @@ export default function Registration({ onGoBack }) {
         alert('Registration successful! Please check your email to verify your account.'); 
         onGoBack(); // Go back to the home page
       } else { 
-        // Handle errors from the server (e.g., "Email already in use")
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed.');
+        // Handle errors from the server
+        const errorMsg = await response.text();
+        throw new Error(errorMsg || 'Registration failed.');
       } 
 
     } catch (error) { 
@@ -299,8 +285,6 @@ export default function Registration({ onGoBack }) {
     backgroundColor: '#555',
     color: 'white',
   };
-  
-  // New styles for the card forms
   const cardFormContainerStyle = {
     border: '1px solid #777',
     borderRadius: '4px',
@@ -310,7 +294,6 @@ export default function Registration({ onGoBack }) {
     flexDirection: 'column',
     gap: '0.5rem'
   };
-
   const cardHeaderStyle = {
     display: 'flex',
     justifyContent: 'space-between',
@@ -318,7 +301,6 @@ export default function Registration({ onGoBack }) {
     marginTop: 0,
     marginBottom: '0.5rem'
   };
-
   const btnRemoveStyle = {
     backgroundColor: '#8b0000',
     color: 'white',
@@ -328,7 +310,6 @@ export default function Registration({ onGoBack }) {
     cursor: 'pointer',
     fontSize: '0.8rem'
   };
-
   const btnAddStyle = {
     padding: '0.5rem 1rem',
     border: 'none',
@@ -340,7 +321,6 @@ export default function Registration({ onGoBack }) {
     marginTop: '1rem',
     alignSelf: 'flex-start'
   };
- 
   // --- END OF STYLES ---
 
   return (
@@ -362,7 +342,6 @@ export default function Registration({ onGoBack }) {
           <input style={inputStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           
           <label style={labelStyle}>Phone Number</label>
-          {/* Use the handlePhoneChange handler */}
           <input 
             style={inputStyle} 
             type="tel" 
@@ -410,11 +389,9 @@ export default function Registration({ onGoBack }) {
             <label style={checkboxLabelStyle} htmlFor="show-payment">Add a payment method now?</label>
           </div>
 
-          {/* This block is now completely changed to render a list */}
           {showPayment && (
             <div style={paymentDetailsStyle}>
               
-              {/* Loop over the paymentCards array and render a form for each */}
               {paymentCards.map((card, index) => (
                 <div key={card.id} style={cardFormContainerStyle}>
                   <div style={cardHeaderStyle}>
@@ -448,7 +425,6 @@ export default function Registration({ onGoBack }) {
                   />
                   
                   <label style={labelStyle}>Expiration Date (MM/YY)</label>
-                  {/* placeholder */}
                   <input 
                     style={inputStyle} 
                     type="text" 
@@ -471,7 +447,6 @@ export default function Registration({ onGoBack }) {
                     </label>
                   </div>
 
-                  {/* Only show billing address form if NOT same as home */}
                   {!card.billingSameAsHome && (
                     <AddressForm 
                       address={card.billingAddress} 
@@ -481,7 +456,6 @@ export default function Registration({ onGoBack }) {
                 </div>
               ))}
 
-              {/* Show "Add Another Card" button if less than 3 cards */}
               {paymentCards.length < 3 && (
                 <button 
                   type="button" 
