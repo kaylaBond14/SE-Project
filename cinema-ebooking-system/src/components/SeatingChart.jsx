@@ -1,27 +1,23 @@
-import React, { useState } from 'react';
+// SeatingChart.jsx
+import React from 'react';
 
 // This is the main component for the seating chart.
-// It receives props for the number of rows, columns, and a list of occupied seats.
-const SeatingChart = ({ rows = 8, cols = 10, occupiedSeats = [] }) => {
-
-  // useState is a React Hook that lets you add state to a functional component.
-  // selectedSeats is the state variable, and setSelectedSeats is the function to update it.
-  // The state is initialized as an empty array.
-  const [selectedSeats, setSelectedSeats] = useState([]);
+// It now receives selectedSeats and an onSeatClick handler as props.
+const SeatingChart = ({ 
+  rows = 8, 
+  cols = 10, 
+  occupiedSeats = [], 
+  selectedSeats, // <-- PROPS (no more useState)
+  onSeatClick    // <-- PROPS
+}) => {
 
   // This function handles the click event on a seat.
   const handleSeatClick = (seat) => {
     // If the seat is occupied, do nothing and exit the function.
     if (occupiedSeats.includes(seat)) return;
-
-    // Check if the clicked seat is already in the selectedSeats array.
-    setSelectedSeats(
-      selectedSeats.includes(seat)
-        ? // If it is, filter it out to deselect it.
-        selectedSeats.filter(s => s !== seat)
-        : // If it's not, add it to the array to select it.
-        [...selectedSeats, seat]
-    );
+    
+    // Call the handler function passed down from the parent (Booking.jsx)
+    onSeatClick(seat); 
   };
 
   // This helper function generates a user-friendly seat name like "A1", "B2", etc.
@@ -36,9 +32,12 @@ const SeatingChart = ({ rows = 8, cols = 10, occupiedSeats = [] }) => {
     for (let i = 0; i < rows; i++) {
       for (let j = 0; j < cols; j++) {
         const seatName = generateSeatName(i, j);
-        const isSelected = selectedSeats.includes(seatName);
+        
+        // Check props for selection status, not local state
+        const isSelected = selectedSeats.includes(seatName); 
         const isOccupied = occupiedSeats.includes(seatName);
 
+        // 
         // Define a base style object for a seat.
         const seatStyle = {
           width: '30px',
@@ -80,7 +79,7 @@ const SeatingChart = ({ rows = 8, cols = 10, occupiedSeats = [] }) => {
           <div
             key={seatName} // A unique key is required for each element in a list in React.
             style={seatStyle}
-            onClick={() => handleSeatClick(seatName)}
+            onClick={() => handleSeatClick(seatName)} // Use the modified handler
           >
             {seatName}
           </div>
@@ -90,6 +89,7 @@ const SeatingChart = ({ rows = 8, cols = 10, occupiedSeats = [] }) => {
     return seats;
   };
 
+  // ... (All style objects remain the same: containerStyle, headingStyle, etc.) ...
   // Define styles for the main container and other UI elements.
   const containerStyle = {
     backgroundColor: '#fff',
@@ -187,7 +187,7 @@ const SeatingChart = ({ rows = 8, cols = 10, occupiedSeats = [] }) => {
       <div style={summaryStyle}>
         <h2>Your Selection:</h2>
         <ul style={selectedListStyle}>
-          {/* Map over the selectedSeats state to display the list */}
+          {/* Map over the selectedSeats prop to display the list */}
           {selectedSeats.map(seat => (
             <li key={seat}>{seat}</li>
           ))}
@@ -198,5 +198,5 @@ const SeatingChart = ({ rows = 8, cols = 10, occupiedSeats = [] }) => {
   );
 };
 
-// Export component so it can be used in the booking.jsx file.
+// Export component so it can be used in the Booking.jsx file.
 export default SeatingChart;
