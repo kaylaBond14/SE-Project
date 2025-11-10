@@ -12,6 +12,8 @@ import com.cinema.backend.utils.JwtTokenUtil;
 import com.cinema.backend.dto.RegisterRequest;
 import com.cinema.backend.dto.ResetPasswordRequest;
 import com.cinema.backend.dto.UpdateUserRequest;
+import com.cinema.backend.model.User;
+import com.cinema.backend.repository.UserRepository;
 import com.cinema.backend.dto.AddressRequest;
 import com.cinema.backend.dto.CardRequest;
 import com.cinema.backend.dto.CardRequestDuringRegister;
@@ -29,9 +31,12 @@ public class EmailTest {
     
     @Autowired
     private UserController userController;
+
+    @Autowired
+    private UserRepository users;
     
-    private String email = "cinemaebookingteam2@gmail.com";
-    //private String email = "nathanhienn@gmail.com";
+    //private String email = "cinemaebookingteam2@gmail.com";
+    private String email = "nathanhienn@gmail.com";
     
     @Test
     public void test() {
@@ -56,20 +61,22 @@ public class EmailTest {
                                     2026, id, cardToken);
         userController.createAddress(id, addrRequest);
         userController.addCard(id, cardRequest);
-        /*
+        */
         // Edit Profile to change existing User, Address, and Card info
+        Long id = Long.valueOf(7);
         Long addrID = Long.valueOf(3);
-        Long cardID = Long.valueOf(5);
+        Long cardID = Long.valueOf(3);
         UpdateUserRequest updateUserReq = new UpdateUserRequest("Bobby", "Hill", 
                                    "1234567899", true);
         AddressRequest updateAddrReq = new AddressRequest("home", "1234 Apple Lane", 
                                     "Boston", "MA", "30341", "USA");
         String newCardToken = JwtTokenUtil.generateToken(email);
-        CardRequest updateCardReq = new CardRequest("VISA", "4945", 2, 
-                                    2028, id, newCardToken);
-        userController.updateUser(id, updateUserReq);
-        userController.patchAddress(id, addrID, updateAddrReq);
+        CardRequest updateCardReq = new CardRequest("MASTERCARD", "1234123412341234", 
+                                    "1234", 4, 2030, updateAddrReq, false);
+        //userController.updateUser(id, updateUserReq);
+        //userController.patchAddress(id, addrID, updateAddrReq);
         userController.patchCard(id, cardID, updateCardReq);
+        /*
         // Test suspending and deleting
         Long id = Long.valueOf(1);
         Long cardID = Long.valueOf(3);

@@ -349,6 +349,15 @@ public class UserService {
             BillingAddress billing = findOrCreateBillingAddress(userId, billingFields);
             pc.setBillingAddress(billing);
         }
+
+        String pan = normalizePan(req.token());
+        assertValidPan(pan);
+        String last4 = pan.substring(pan.length() - 4);
+        
+        pc.setBrand(req.brand());
+        pc.setToken(pan);
+        pc.setLast4(last4);
+
         emailService.sendProfileEditedEmail(user.getEmail());
         return cardRepository.save(pc);
     }
