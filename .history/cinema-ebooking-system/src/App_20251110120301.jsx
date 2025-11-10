@@ -253,98 +253,46 @@ const AdminMoviesPage = ({ onBack, onNavigate }) => {
 
 // 2️⃣ Manage Showtimes
 const AdminShowtimesPage = ({ onBack }) => {
-  // Three test showrooms (as required)
-  const mockShowrooms = [
-    { id: 1, name: "Showroom 1", capacity: 100 },
-    { id: 2, name: "Showroom 2", capacity: 150 },
-    { id: 3, name: "Showroom 3", capacity: 200 },
-  ];
-
-  // Mock existing showtimes
-  const mockShowtimes = [
-    { movie: "Inception", showroom: "Showroom 1", datetime: "2025-11-06 19:30" },
-    { movie: "Interstellar", showroom: "Showroom 2", datetime: "2025-11-07 18:00" },
-  ];
-
   const handleSubmit = (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(e.target));
-
     console.log("[DEBUG] Showtime form submitted:", data);
-
-    // Simple conflict detection
-    const conflict = mockShowtimes.some(
-      s => s.showroom === data.showroom && s.datetime === data.datetime
-    );
-
-    if (conflict) {
-      alert("❌ Conflict: A movie is already scheduled in this showroom at that time!");
-    } else {
-      alert("✅ Mock: Showtime scheduled successfully!");
-    }
+    alert("Mock: Showtime scheduled!");
   };
 
   return (
     <div style={{ padding: '2rem' }}>
       <button onClick={onBack}>← Back to Dashboard</button>
       <h2>Schedule Movie Showtimes</h2>
-
-      {/* Showtime form */}
       <form onSubmit={handleSubmit} style={{ maxWidth: '500px', marginTop: '1rem' }}>
         <label>Movie*</label>
         <select name="movie" required>
           <option value="">Select movie</option>
-          {mockMovies.map(m => (
-            <option key={m.id}>{m.title}</option>
-          ))}
+          {mockMovies.map(m => <option key={m.id}>{m.title}</option>)}
         </select>
-
         <label>Showroom*</label>
         <select name="showroom" required>
           <option value="">Select showroom</option>
-          {mockShowrooms.map(r => (
-            <option key={r.id}>{r.name} (Seats: {r.capacity})</option>
-          ))}
+          {mockShowrooms.map(r => <option key={r}>{r}</option>)}
         </select>
-
         <label>Date & Time*</label>
         <input name="datetime" type="datetime-local" required />
-
-        <button type="submit" style={{ marginTop: '1rem' }}>
-          Schedule (Mock)
-        </button>
+        <button type="submit">Schedule (Mock)</button>
       </form>
-
-      {/* Existing showtimes display */}
       <h3 style={{ marginTop: '2rem' }}>Existing Showtimes (Mock Data)</h3>
       <table style={{ width: '100%', marginTop: '0.5rem' }}>
-        <thead>
-          <tr>
-            <th>Movie</th>
-            <th>Showroom</th>
-            <th>Date & Time</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Movie</th><th>Showroom</th><th>Date & Time</th></tr></thead>
         <tbody>
-          {mockShowtimes.map((s, i) => (
-            <tr key={i}>
-              <td>{s.movie}</td>
-              <td>{s.showroom}</td>
-              <td>{s.datetime}</td>
-            </tr>
-          ))}
+          <tr><td>Inception</td><td>Showroom 1</td><td>2025-11-06 19:30</td></tr>
         </tbody>
       </table>
-
-      <div style={{ color: 'red', marginTop: '1rem' }}>
-        Conflict detection active. (Mock)
-      </div>
+      <div style={{ color: 'red', marginTop: '1rem' }}>No conflicts detected. (Mock)</div>
     </div>
   );
 };
 
 
-
+// 3️⃣ Manage Promotions
 // 3️⃣ Manage Promotions
 const AdminPromotionsPage = ({ onBack }) => {
   const handleCreatePromo = (e) => {
