@@ -8,13 +8,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 class BackendApplicationTests {
 
 	@Test
-	void generateHash() {
-		var encoder = new BCryptPasswordEncoder();
-    	System.out.println(encoder.encode("Team2admin!"));
-	}
-
-
-	@Test
 	void contextLoads() {
 	}
 

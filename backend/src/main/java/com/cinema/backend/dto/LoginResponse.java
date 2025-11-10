@@ -5,5 +5,5 @@ public record LoginResponse(
         String email,
         String token,
         String role, //ADMIN OR CUSTOMER
-        String status
+        String status 
 ) {}
