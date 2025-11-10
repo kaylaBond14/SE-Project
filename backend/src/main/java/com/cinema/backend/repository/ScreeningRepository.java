@@ -17,6 +17,7 @@ public interface ScreeningRepository extends JpaRepository<Screening, Long> {
             SELECT CASE WHEN COUNT(s) > 0 THEN TRUE ELSE FALSE END
             FROM Screening s
             WHERE s.hall.id = :hallId
+              AND s.isCanceled = FALSE
               AND s.startsAt < :endTime
               AND s.endsAt   > :startTime
             """)
@@ -24,6 +25,18 @@ public interface ScreeningRepository extends JpaRepository<Screening, Long> {
                             @Param("startTime") LocalDateTime startTime,
                             @Param("endTime") LocalDateTime endTime);
 
-      
+      //upcoming showtimes for a movie after certain time
       List<Screening> findByMovieIdAndStartsAtAfterOrderByStartsAtAsc(Long movieId, LocalDateTime from);
+
+      @Query("""
+           SELECT s FROM Screening s
+           WHERE s.movieId = :movieId
+             AND s.isCanceled = false
+             AND s.startsAt >= :startOfDay
+             AND s.startsAt <  :endOfDay
+           ORDER BY s.startsAt ASC
+           """)
+      List<Screening> findForMovieOnDate(@Param("movieId") Long movieId,
+                                       @Param("startOfDay") LocalDateTime startOfDay,
+                                       @Param("endOfDay") LocalDateTime endOfDay);
 }
