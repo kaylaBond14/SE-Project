@@ -101,20 +101,33 @@ public class UserService {
     public User updateBasics(Long id, String firstName, String lastName, String phone, Boolean promoOptIn) {
         User user = getById(id);
 
+        // Save the user's current info to check if any changes are made afterwards
+        String oldFirstName = user.getFirstName();
+        String oldLastName = user.getLastName();
+        String oldPhone = user.getPhone();
+        Boolean oldPromoOptIn = user.isPromoOptIn();
+
+        boolean basicsUpdated = false; // Used to determine if a "profile edited" email is sent
         if (firstName != null && !firstName.isBlank()) {
             user.setFirstName(firstName);
+            if (oldFirstName.compareTo(firstName) != 0) basicsUpdated = true;
         }
         if (lastName != null && !lastName.isBlank()) {
             user.setLastName(lastName);
+            if (oldLastName.compareTo(lastName) != 0) basicsUpdated = true;
         }
         if (phone != null) {
             user.setPhone(phone);
+            if (oldPhone.compareTo(phone) != 0) basicsUpdated = true;
         }
         if (promoOptIn != null) {
             user.setPromoOptIn(promoOptIn);
+            if (oldPromoOptIn.equals(promoOptIn) == false) basicsUpdated = true;
         }
 
-        emailService.sendUpdatedBasicsEmail(user.getEmail()); // Notify user their profile changed
+        if (basicsUpdated == true) {
+            emailService.sendUpdatedBasicsEmail(user.getEmail()); // Notify user their profile changed
+        }
         return users.save(user);
     }
 
@@ -281,14 +294,43 @@ public class UserService {
         HomeAddress a = homeAddressRepository.findById(homeId).orElseThrow(EntityNotFoundException::new);
         if (!a.getUser().getId().equals(user.getId())) throw new IllegalArgumentException("Address not owned by user");
 
-        if (req.label() != null) a.setLabel(req.label());
-        if (req.street() != null) a.setStreet(req.street());
-        if (req.city() != null) a.setCity(req.city());
-        if (req.state() != null) a.setState(req.state());
-        if (req.postalCode() != null) a.setPostalCode(req.postalCode());
-        if (req.country() != null) a.setCountry(req.country());
+        // Save the user's current info to check if any changes are made afterwards
+        String oldLabel = a.getLabel();
+        String oldStreet = a.getStreet();
+        String oldCity = a.getCity();
+        String oldState = a.getState();
+        String oldPostalCode = a.getPostalCode();
+        String oldCountry = a.getCountry();
 
-        emailService.sendUpdatedAddressEmail(user.getEmail()); // Notify user their profile changed
+        boolean addressUpdated = false; // Used to determine if a "profile edited" email is sent
+        if (req.label() != null) {
+            a.setLabel(req.label());
+            if (oldLabel.compareTo(req.label()) != 0) addressUpdated = true;
+        }
+        if (req.street() != null) {
+            a.setStreet(req.street());
+            if (oldStreet.compareTo(req.street()) != 0) addressUpdated = true;
+        }
+        if (req.city() != null) {
+            a.setCity(req.city());
+            if (oldCity.compareTo(req.city()) != 0) addressUpdated = true;
+        }
+        if (req.state() != null) {
+            a.setState(req.state());
+            if (oldState.compareTo(req.state()) != 0) addressUpdated = true;
+        }
+        if (req.postalCode() != null) {
+            a.setPostalCode(req.postalCode());
+            if (oldPostalCode.compareTo(req.postalCode()) != 0) addressUpdated = true;
+        }
+        if (req.country() != null) {
+            a.setCountry(req.country());
+            if (oldCountry.compareTo(req.country()) != 0) addressUpdated = true;
+        }
+
+        if (addressUpdated == true) {
+            emailService.sendUpdatedAddressEmail(user.getEmail()); // Notify user their profile changed
+        }
         return homeAddressRepository.save(a);
     }
 
