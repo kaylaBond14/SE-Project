@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PromotionRepository extends JpaRepository<Promotion, Long> {
 
-    //Find active promo by code
 Optional<Promotion> findFirstByCodeIgnoreCaseAndActiveIsTrue(String code);
 
 //Find active promo valid for today

@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-import java.util.Optional;
+
 
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
@@ -75,9 +75,9 @@ List<Movie> filterByGenre(@Param("genre") String genre);
   order by c.title
 """)
 List<String> distinctGenres();
-
+/** 
 @EntityGraph(attributePaths = "categories")
 Optional<Movie> findById(Long id);
-
+ */
 
 }

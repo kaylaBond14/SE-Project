@@ -9,13 +9,13 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import org.springframework.http.HttpStatus;
+
 import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/movies")
-@CrossOrigin // allow calls from your React app
+@CrossOrigin 
 public class MovieController {
 
     private final MovieRepository movieRepo;
@@ -47,7 +47,7 @@ public class MovieController {
     @GetMapping("/search")
     public List<Movie> search(@RequestParam("q") String q) {
         String term = q == null ? "" : q.trim();
-            if (term.isEmpty()) return List.of(); //empty term returns empty list
+            if (term.isEmpty()) return List.of(); 
                 return movieRepo.search(term);
     }
 

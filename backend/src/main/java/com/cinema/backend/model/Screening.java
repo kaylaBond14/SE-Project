@@ -10,50 +10,36 @@ import java.time.LocalDateTime;
         @Index(name = "idx_screenings_starts_at", columnList = "starts_at"),
         @Index(name = "idx_screenings_movie_date", columnList = "movie_id, starts_at"),
         @Index(name = "idx_screenings_hall", columnList = "hall_id"),
-        
         @Index(name = "idx_screenings_hall_time", columnList = "hall_id, starts_at, ends_at")
     },
-    uniqueConstraints = {
-        @UniqueConstraint(name = "uq_hall_time", columnNames = {"hall_id", "starts_at"})
-    }
+    uniqueConstraints = @UniqueConstraint(name = "uq_hall_time", columnNames = {"hall_id", "starts_at"})
 )
 public class Screening {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;                        
+    private Long id;
 
-    //FK field to avoid Movie entity dependency
     @Column(name = "movie_id", nullable = false)
-    private Long movieId;                   
+    private Long movieId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @Column(name = "hall_id", nullable = false)
-    private Hall hall;               
+    @JoinColumn(name = "hall_id", nullable = false, foreignKey = @ForeignKey(name = "fk_scr_hall"))
+    private Hall hall;
 
     @Column(name = "starts_at", nullable = false)
-    private LocalDateTime startsAt;         
+    private LocalDateTime startsAt;
 
     @Column(name = "ends_at", nullable = false)
-    private LocalDateTime endsAt;           
+    private LocalDateTime endsAt;
 
     @Column(name = "is_canceled", nullable = false)
-    private boolean isCanceled;  
-    
-    @Column(name = "available_Seats", nullable = false)
-    private Integer availableSeats = 0;
+    private boolean isCanceled;
 
-    public Screening() {}
+    @Column(name = "available_seats", insertable = false, updatable = false)
+    private Integer availableSeats;
 
-    public Screening(Long movieId, Hall hall, LocalDateTime startsAt, LocalDateTime endsAt) {
-        this.movieId = movieId;
-        this.hall = hall;
-        this.startsAt = startsAt;
-        this.endsAt = endsAt;
-    }
-
-    // Getters and Setters
+    // getters/setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -75,3 +61,4 @@ public class Screening {
     public Integer getAvailableSeats() { return availableSeats; }
     public void setAvailableSeats(Integer availableSeats) { this.availableSeats = availableSeats; }
 }
+
