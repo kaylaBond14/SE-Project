@@ -1,12 +1,14 @@
-package com.cinema.backend.controller;
+package com.cinema.backend.controller.admin;
 
 import com.cinema.backend.model.Screening;
+import com.cinema.backend.repository.ScreeningRepository;
 import com.cinema.backend.services.ScreeningService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/screenings")
@@ -14,12 +16,15 @@ import java.time.LocalDateTime;
 public class AdminScreeningController {
 
     private final ScreeningService screeningService;
+    private final ScreeningRepository screeningRepo;
 
-    public AdminScreeningController(ScreeningService screeningService) {
+    public AdminScreeningController(ScreeningService screeningService,
+                                    ScreeningRepository screeningRepo) {
         this.screeningService = screeningService;
+        this.screeningRepo = screeningRepo;
     }
 
-    // Create a screening 
+    //Create screening
     @PostMapping
     public ResponseEntity<Screening> create(@RequestBody CreateScreeningRequest body) {
         Screening s = screeningService.createScreening(
@@ -29,6 +34,21 @@ public class AdminScreeningController {
                 body.getRuntimeMinutes());
         return ResponseEntity.status(HttpStatus.CREATED).body(s);
     }
+
+    @GetMapping
+        public List<Screening> list(@RequestParam(required = false) Long movieId,
+                                @RequestParam(required = false) Long hallId) {
+        if (movieId != null && hallId != null) {
+            return screeningRepo.findAllByMovieIdAndHall_IdOrderByStartsAtAsc(movieId, hallId);
+        } else if (movieId != null) {
+            return screeningRepo.findByMovieIdAndIsCanceledFalseAndStartsAtAfterOrderByStartsAtAsc(
+                    movieId, LocalDateTime.now().minusYears(50));
+        } else if (hallId != null) {
+            return screeningRepo.findAllByHall_IdOrderByStartsAtAsc(hallId);
+        }
+        return screeningRepo.findAll();
+    }
+
 
     // DTO for creating a screening
     public static class CreateScreeningRequest {

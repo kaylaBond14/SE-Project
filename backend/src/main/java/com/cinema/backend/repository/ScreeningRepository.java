@@ -12,6 +12,11 @@ public interface ScreeningRepository extends JpaRepository<Screening, Long> {
 
     boolean existsByHall_IdAndStartsAt(Long hallId, LocalDateTime startsAt);
 
+    List<Screening> findAllByHall_IdOrderByStartsAtAsc(Long hallId);
+    
+    List<Screening> findAllByMovieIdAndHall_IdOrderByStartsAtAsc(Long movieId, Long hallId);
+
+
     @Query("SELECT CASE WHEN COUNT(s) > 0 THEN TRUE ELSE FALSE END " +
            "FROM Screening s " +
            "WHERE s.hall.id = :hallId " +
@@ -34,5 +39,7 @@ public interface ScreeningRepository extends JpaRepository<Screening, Long> {
     List<Screening> findForMovieOnDate(@Param("movieId") Long movieId,
                                        @Param("startOfDay") LocalDateTime startOfDay,
                                        @Param("endOfDay") LocalDateTime endOfDay);
+
+
 }
 

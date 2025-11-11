@@ -22,5 +22,7 @@ public interface MovieService {
     List<Movie> filterByGenre(String genre);
 
     List<String> distinctGenres();
+
+    Movie save(Movie movie);
     
 }

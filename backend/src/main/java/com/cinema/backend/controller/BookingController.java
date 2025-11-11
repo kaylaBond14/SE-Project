@@ -3,6 +3,7 @@ package com.cinema.backend.controller;
 import com.cinema.backend.model.Booking;
 import com.cinema.backend.model.Ticket;
 import com.cinema.backend.repository.TicketRepository;
+import com.cinema.backend.repository.BookingRepository;
 import com.cinema.backend.services.BookingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,11 +18,14 @@ public class BookingController {
 
     private final BookingService bookingService;
     private final TicketRepository ticketRepo;
+    private final BookingRepository bookingRepo; //for applyPromo if want it here
 
     public BookingController(BookingService bookingService,
-                             TicketRepository ticketRepo) {
+                             TicketRepository ticketRepo,
+                             BookingRepository bookingRepo) {
         this.bookingService = bookingService;
         this.ticketRepo = ticketRepo;
+        this.bookingRepo = bookingRepo;
     }
 
     // Start booking
@@ -42,6 +46,9 @@ public class BookingController {
         bookingService.assignSeats(bookingId, seatIds);
         return ResponseEntity.noContent().build();
     }
+
+    //TODO: BUILD APPLYPROMO here or in promo Controller ???
+    //promotionService.applyToBooking(bookingId, body.getCode());
 
     // Confirm booking (optional state change)
     @PostMapping("/{bookingId}/confirm")
@@ -68,6 +75,13 @@ public class BookingController {
         public void setScreeningId(Long screeningId) { this.screeningId = screeningId; }
         public List<BookingService.TicketRequest> getTickets() { return tickets; }
         public void setTickets(List<BookingService.TicketRequest> tickets) { this.tickets = tickets; }
+    }
+
+    public static class ApplyPromotionRequest {
+        private String code;
+
+        public String getCode() { return code; }
+        public void setCode(String code) { this.code = code; }
     }
 
     
