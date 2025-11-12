@@ -6,11 +6,12 @@ import java.time.LocalDateTime;
 
 import java.util.HashSet;
 import java.util.Set;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.JoinColumn;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.List;
 import java.util.Objects;
@@ -43,17 +44,28 @@ public class Movie {
     private Integer runtimeMin;         
 
     @Column(name = "release_date")
-    private LocalDate releaseDate;      
+    private LocalDate releaseDate;   
+    
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @CreationTimestamp
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
 
-    // These are auto-managed by MySQL defaults; mark as not insertable/updatable
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    /**  These are auto-managed by MySQL defaults; mark as not insertable/updatable
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;    
 
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;   
 
+    */
+
     // Many-to-Many relationship with Category
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable( 
         name = "movie_categories", 
         joinColumns = @JoinColumn(name = "movie_id"), 
@@ -62,7 +74,7 @@ public class Movie {
     @JsonIgnore // to prevent circular references during JSON serialization
     private Set<Category> categories = new HashSet<>();
 
-    @JsonProperty("genres")
+    @JsonProperty(value = "genres", access = JsonProperty.Access.READ_ONLY)
     @Transient
     public List<String> getGenres() {
         return categories.stream()
@@ -99,4 +111,12 @@ public class Movie {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+    public Set<Category> getCategories() {
+        return categories;
+    }
+
+    public void setCategories(Set<Category> categories) {
+        this.categories = (categories == null) ? new java.util.HashSet<>() : categories;
+    }
 }

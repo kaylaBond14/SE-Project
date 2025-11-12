@@ -25,12 +25,12 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     public List<Movie> listMovies() {
-        return movieRepo.findAll();
+        return movieRepo.findAllWithCategories();
     }
 
     @Override
     public Optional<Movie> getMovie(Long movieId) {
-        return movieRepo.findById(movieId);
+        return movieRepo.findByIdWithCategories(movieId);
     }
 
     @Override
