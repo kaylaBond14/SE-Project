@@ -10,6 +10,7 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import org.hibernate.Hibernate;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -77,6 +78,10 @@ public class Movie {
     @JsonProperty(value = "genres", access = JsonProperty.Access.READ_ONLY)
     @Transient
     public List<String> getGenres() {
+        if (!Hibernate.isInitialized(categories) || categories == null) {
+            return java.util.List.of();
+        }   
+
         return categories.stream()
         .map(Category::getTitle)
         .filter(Objects::nonNull)

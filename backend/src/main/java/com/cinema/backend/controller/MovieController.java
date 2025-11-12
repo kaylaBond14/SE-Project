@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.RequestParam;
+
 import java.util.List;
 
 @RestController
@@ -63,14 +63,26 @@ public class MovieController {
     @GetMapping("/{id}/showtimes")
     public List<Screening> getShowtimesForMovieOnDate(
         @PathVariable Long id,
-        @RequestParam(name = "date", required = false)
-        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+        @RequestParam(name = "date", required = false) String date
     ) {
-        LocalDate d = (date == null) ? LocalDate.now() : date;
-        LocalDateTime start = d.atStartOfDay();
-        LocalDateTime end = d.plusDays(1).atStartOfDay();
-        return screeningRepo.findForMovieOnDate(id, start, end);
+        java.time.LocalDate d;
+        if (date == null || date.isBlank()) {
+            d = java.time.LocalDate.now();
+        } else {
+            try {
+                d = java.time.LocalDate.parse(date); // expects YYYY-MM-DD
+            } catch (java.time.format.DateTimeParseException e) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Invalid date format. Use YYYY-MM-DD."
+                );
+            }
     }
+
+    java.time.LocalDateTime start = d.atStartOfDay();
+    java.time.LocalDateTime end = d.plusDays(1).atStartOfDay();
+    return screeningRepo.findForMovieOnDateWithHall(id, start, end);
+}
 
 /* ADVANCED FILTERING OPTIONS
     @GetMapping("/filter")
@@ -103,6 +115,13 @@ public class MovieController {
     public List<String> genres() {
         return movieRepo.distinctGenres();
     }
+
+    @GetMapping(value = "/{id}/showtimes", params = "!date")
+    public List<Screening> getFutureShowtimes(@PathVariable Long id) {
+        return screeningRepo.findFutureForMovieWithHall(id, java.time.LocalDateTime.now());
+    }
+
+    
 }
 
     

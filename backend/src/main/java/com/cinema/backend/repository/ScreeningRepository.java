@@ -46,7 +46,37 @@ public interface ScreeningRepository extends JpaRepository<Screening, Long> {
            join fetch s.hall h
            order by s.startsAt
            """)
-    List<Screening> findAllWithHall();                                 
+    List<Screening> findAllWithHall();           
+    
+       @Query("""
+              select s
+              from Screening s
+              join fetch s.hall h
+              where s.movieId = :movieId
+              and s.isCanceled = false
+              and s.startsAt >= :startOfDay
+              and s.startsAt <  :endOfDay
+              order by s.startsAt
+              """)
+      List<Screening> findForMovieOnDateWithHall(
+              @Param("movieId") Long movieId,
+              @Param("startOfDay") java.time.LocalDateTime startOfDay,
+              @Param("endOfDay")   java.time.LocalDateTime endOfDay
+       );
+
+       @Query("""
+       select s
+       from Screening s
+       join fetch s.hall h
+       where s.movieId = :movieId
+         and s.isCanceled = false
+         and s.startsAt > :after
+       order by s.startsAt
+       """)
+       List<Screening> findFutureForMovieWithHall(
+              @Param("movieId") Long movieId,
+              @Param("after")   java.time.LocalDateTime after
+       );
 
 }
 
