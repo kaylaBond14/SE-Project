@@ -516,7 +516,6 @@ export default function App() {
 
 
   // This function decides which page to render based on the current state.
-    // This function decides which page to render based on the current state.
   const renderPage = () => {
     if (currentPage === 'home') {
       return (
@@ -543,9 +542,20 @@ export default function App() {
         />
       );
     } else if (currentPage === 'registration') {
-      return <Registration onGoBack={handleGoBackFromRegistration} />;
-    } else if (currentPage === 'edit-profile') {
-      if (!currentUser) return <div style={{ padding: '2rem' }}>Loading profile...</div>;
+      return (
+        <Registration
+          onGoBack={handleGoBackFromRegistration}
+        />
+      );
+    } else if (currentPage == 'edit-profile') {
+      // A loading check 
+      // If the user is logged in but haven't fetched their data yet
+      if (!currentUser) { 
+        // Show a loading message
+        return <div style={{ padding: '2rem' }}>Loading profile...</div>; 
+      } 
+      
+      // Once 'currentUser' is fetched, render the form
       return (
         <EditProfile 
           user={currentUser} 
@@ -558,16 +568,17 @@ export default function App() {
         <Login
           onLoginSuccess={handleLoginSuccess}
           onGoForgot={() => setCurrentPage('forgot-password')}
-          onGoSignup={handleGoToRegister}
+          onGoSignup={handleGoToRegister} // Re-uses existing function
         />
       );
     } else if (currentPage === 'forgot-password') {
-      return <ForgotPassword onGoBack={() => setCurrentPage('login')} />;
-    } 
-    
-    // ✅ ADMIN PORTAL PAGES
-    else if (currentPage === 'admin-dashboard') {
-      return <AdminDashboard onNavigate={setCurrentPage} />;
+      return (
+        <ForgotPassword
+          onGoBack={() => setCurrentPage('login')} //Goes back to login page
+        />
+      );
+    } else if (currentPage === 'admin-dashboard') {
+      return <AdminDashboard onNavigate={setCurrentPage} />;  // Pass setCurrentPage for navigation
     } else if (currentPage === 'admin-movies') {
       return <AdminMoviesPage onBack={() => setCurrentPage('admin-dashboard')} />;
     } else if (currentPage === 'admin-showtimes') {
@@ -576,14 +587,10 @@ export default function App() {
       return <AdminPromotionsPage onBack={() => setCurrentPage('admin-dashboard')} />;
     } else if (currentPage === 'admin-users') {
       return <AdminUsersPage onBack={() => setCurrentPage('admin-dashboard')} />;
-    }
 
-    // Default fallback
-    else {
-      return <div style={{ padding: '2rem' }}>Page not found.</div>;
+ 
     }
   };
-
 
   const appStyle = { 
     fontFamily: 'Arial, sans-serif',

@@ -6,94 +6,86 @@ import Booking from "./components/Booking.jsx";
 import Registration from "./components/Registration.jsx";
 import EditProfile from './components/EditProfile.jsx';
 import Login from './components/Login.jsx'; 
-import ForgotPassword from './components/forgotpassword.jsx';
-import {
-  AdminDashboard,
-  AdminMoviesPage,
-  AdminShowtimesPage,
-  AdminPromotionsPage,
-  AdminUsersPage
-} from "./components/AdminPortal.jsx";
-
+import ForgotPassword from './components/forgotpassword.jsx'; 
 
 // Component for the admin dashboard
-// const AdminDashboard = ({ onNavigate }) => {
-//   // Style for the outer container
-//   const containerStyle = {
-//     display: 'flex',
-//     justifyContent: 'center',
-//     flexWrap: 'wrap', // Added to help if you add more cards
-//     gap: '2rem', // Space between cards
-//     marginTop: '2rem'
-//   };
+const AdminDashboard = () => {
+  // Style for the outer container
+  const containerStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap', // Added to help if you add more cards
+    gap: '2rem', // Space between cards
+    marginTop: '2rem'
+  };
 
-//   // Style for each card
-//   const cardStyle = {
-//     backgroundColor: '#3a3a3a', // A slightly lighter dark shade
-//     padding: '1.5rem 2rem',
-//     borderRadius: '12px',
-//     width: '300px',
-//     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-//     cursor: 'pointer',
-//     transition: 'transform 0.2s'
-//   };
+  // Style for each card
+  const cardStyle = {
+    backgroundColor: '#3a3a3a', // A slightly lighter dark shade
+    padding: '1.5rem 2rem',
+    borderRadius: '12px',
+    width: '300px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    cursor: 'pointer',
+    transition: 'transform 0.2s'
+  };
   
-//   // Style for card titles
-//   const cardTitleStyle = {
-//     fontSize: '1.5rem',
-//     fontWeight: 'bold',
-//     marginBottom: '0.5rem'
-//   };
+  // Style for card titles
+  const cardTitleStyle = {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    marginBottom: '0.5rem'
+  };
 
-//   // Style for card descriptions
-//   const cardDescStyle = {
-//     fontSize: '1rem',
-//     color: '#ccc', // Lighter text for description
-//     minHeight: '40px'
-//   };
+  // Style for card descriptions
+  const cardDescStyle = {
+    fontSize: '1rem',
+    color: '#ccc', // Lighter text for description
+    minHeight: '40px'
+  };
 
-//   return (
-//     <div style={{ padding: '2rem', textAlign: 'center' }}>
-//       <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>
-//         Admin Dashboard
-//       </h1>
+  return (
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>
+        Admin Dashboard
+      </h1>
 
-//       <div style={containerStyle}>
-//         {/* Manage Movies Card */}
-//         <div 
-//           style={cardStyle}
-//           onClick={() => onNavigate('admin-movies')}
-//           onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
-//           onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-//         >
-//           <h2 style={cardTitleStyle}>Manage Movies</h2>
-//           <p style={cardDescStyle}>Add, edit, or remove movie listings and showtimes.</p>
-//         </div>
+      <div style={containerStyle}>
+        {/* Manage Movies Card */}
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Movies') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Movies</h2>
+          <p style={cardDescStyle}>Add, edit, or remove movie listings and showtimes.</p>
+        </div>
 
-//         {/* Manage Promotions Card */}
-//         <div 
-//           style={cardStyle}
-//           onClick={() => onNavigate('admin-promotions')}
-//           onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
-//           onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-//         >
-//           <h2 style={cardTitleStyle}>Manage Promotions</h2>
-//           <p style={cardDescStyle}>Create, update, and manage all active promotions.</p>
-//         </div>
-//         <div 
-//           style={cardStyle}
-//           onClick={() => onNavigate('admin-users')}
-//           onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
-//           onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
-//         >
-//           <h2 style={cardTitleStyle}>Manage Users</h2>
-//           <p style={cardDescStyle}>Search, view, and edit user accounts and permissions.</p>
-//         </div>
+        {/* Manage Promotions Card */}
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Promotions') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Promotions</h2>
+          <p style={cardDescStyle}>Create, update, and manage all active promotions.</p>
+        </div>
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Users') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Users</h2>
+          <p style={cardDescStyle}>Search, view, and edit user accounts and permissions.</p>
+        </div>
 
-//       </div>
-//     </div>
-//   );
-// };
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
@@ -516,7 +508,6 @@ export default function App() {
 
 
   // This function decides which page to render based on the current state.
-    // This function decides which page to render based on the current state.
   const renderPage = () => {
     if (currentPage === 'home') {
       return (
@@ -543,9 +534,20 @@ export default function App() {
         />
       );
     } else if (currentPage === 'registration') {
-      return <Registration onGoBack={handleGoBackFromRegistration} />;
-    } else if (currentPage === 'edit-profile') {
-      if (!currentUser) return <div style={{ padding: '2rem' }}>Loading profile...</div>;
+      return (
+        <Registration
+          onGoBack={handleGoBackFromRegistration}
+        />
+      );
+    } else if (currentPage == 'edit-profile') {
+      // A loading check 
+      // If the user is logged in but haven't fetched their data yet
+      if (!currentUser) { 
+        // Show a loading message
+        return <div style={{ padding: '2rem' }}>Loading profile...</div>; 
+      } 
+      
+      // Once 'currentUser' is fetched, render the form
       return (
         <EditProfile 
           user={currentUser} 
@@ -558,32 +560,20 @@ export default function App() {
         <Login
           onLoginSuccess={handleLoginSuccess}
           onGoForgot={() => setCurrentPage('forgot-password')}
-          onGoSignup={handleGoToRegister}
+          onGoSignup={handleGoToRegister} // Re-uses existing function
         />
       );
     } else if (currentPage === 'forgot-password') {
-      return <ForgotPassword onGoBack={() => setCurrentPage('login')} />;
-    } 
-    
-    // ✅ ADMIN PORTAL PAGES
-    else if (currentPage === 'admin-dashboard') {
-      return <AdminDashboard onNavigate={setCurrentPage} />;
-    } else if (currentPage === 'admin-movies') {
-      return <AdminMoviesPage onBack={() => setCurrentPage('admin-dashboard')} />;
-    } else if (currentPage === 'admin-showtimes') {
-      return <AdminShowtimesPage onBack={() => setCurrentPage('admin-dashboard')} />;
-    } else if (currentPage === 'admin-promotions') {
-      return <AdminPromotionsPage onBack={() => setCurrentPage('admin-dashboard')} />;
-    } else if (currentPage === 'admin-users') {
-      return <AdminUsersPage onBack={() => setCurrentPage('admin-dashboard')} />;
-    }
-
-    // Default fallback
-    else {
-      return <div style={{ padding: '2rem' }}>Page not found.</div>;
+      return (
+        <ForgotPassword
+          onGoBack={() => setCurrentPage('login')} //Goes back to login page
+        />
+      );
+    } else if (currentPage === 'admin-dashboard') {
+      return <AdminDashboard />;
+ 
     }
   };
-
 
   const appStyle = { 
     fontFamily: 'Arial, sans-serif',
