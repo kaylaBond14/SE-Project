@@ -40,6 +40,13 @@ public interface ScreeningRepository extends JpaRepository<Screening, Long> {
                                        @Param("startOfDay") LocalDateTime startOfDay,
                                        @Param("endOfDay") LocalDateTime endOfDay);
 
+      @Query("""
+           select s
+           from Screening s
+           join fetch s.hall h
+           order by s.startsAt
+           """)
+    List<Screening> findAllWithHall();                                 
 
 }
 
