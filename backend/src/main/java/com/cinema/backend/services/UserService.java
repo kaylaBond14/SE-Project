@@ -114,7 +114,7 @@ public class UserService {
             user.setPromoOptIn(promoOptIn);
         }
 
-        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
+        emailService.sendUpdatedBasicsEmail(user.getEmail()); // Notify user their profile changed
         return users.save(user);
     }
 
@@ -130,7 +130,7 @@ public class UserService {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         users.save(user);
-        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
+        emailService.sendPasswordChangedEmail(user.getEmail()); // Notify user their profile changed
     }
 
     /**
@@ -272,7 +272,7 @@ public class UserService {
         h.setState(req.state());
         h.setPostalCode(req.postalCode());
         h.setCountry((req.country() == null || req.country().isBlank()) ? "USA" : req.country());
-        emailService.sendProfileEditedEmail(user.getEmail());
+        emailService.sendUpdatedAddressEmail(user.getEmail());
         return homeAddressRepository.save(h);
 }
 
@@ -288,7 +288,7 @@ public class UserService {
         if (req.postalCode() != null) a.setPostalCode(req.postalCode());
         if (req.country() != null) a.setCountry(req.country());
 
-        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
+        emailService.sendUpdatedAddressEmail(user.getEmail()); // Notify user their profile changed
         return homeAddressRepository.save(a);
     }
 
@@ -331,7 +331,7 @@ public class UserService {
         card.setExpYear((short) req.expYear());
         card.setBillingAddress(billing);
 
-        emailService.sendProfileEditedEmail(user.getEmail());
+        emailService.sendAddedCardEmail(user.getEmail());
         return cardRepository.save(card);
     }
 
@@ -358,7 +358,7 @@ public class UserService {
         pc.setToken(pan);
         pc.setLast4(last4);
 
-        emailService.sendProfileEditedEmail(user.getEmail());
+        emailService.sendUpdatedCardEmail(user.getEmail());
         return cardRepository.save(pc);
     }
 
@@ -367,7 +367,7 @@ public class UserService {
         PaymentCard pc = cardRepository.findById(cardId).orElseThrow(EntityNotFoundException::new);
         if (!pc.getUser().getId().equals(user.getId())) throw new IllegalArgumentException("Card not owned by user");
         cardRepository.delete(pc);
-        emailService.sendProfileEditedEmail(user.getEmail()); // Notify user their profile changed
+        emailService.sendDeletedCardEmail(user.getEmail()); // Notify user their profile changed
     }
 
     //Helpers

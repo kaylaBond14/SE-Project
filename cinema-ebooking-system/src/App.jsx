@@ -9,11 +9,83 @@ import Login from './components/Login.jsx';
 import ForgotPassword from './components/forgotpassword.jsx'; 
 
 // Component for the admin dashboard
-const AdminDashboard = () => (
-  <div style={{ padding: '2rem', textAlign: 'center' }}>
-    <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>Admin Dashboard</h1>
-  </div>
-);
+const AdminDashboard = () => {
+  // Style for the outer container
+  const containerStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap', // Added to help if you add more cards
+    gap: '2rem', // Space between cards
+    marginTop: '2rem'
+  };
+
+  // Style for each card
+  const cardStyle = {
+    backgroundColor: '#3a3a3a', // A slightly lighter dark shade
+    padding: '1.5rem 2rem',
+    borderRadius: '12px',
+    width: '300px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    cursor: 'pointer',
+    transition: 'transform 0.2s'
+  };
+  
+  // Style for card titles
+  const cardTitleStyle = {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    marginBottom: '0.5rem'
+  };
+
+  // Style for card descriptions
+  const cardDescStyle = {
+    fontSize: '1rem',
+    color: '#ccc', // Lighter text for description
+    minHeight: '40px'
+  };
+
+  return (
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>
+        Admin Dashboard
+      </h1>
+
+      <div style={containerStyle}>
+        {/* Manage Movies Card */}
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Movies') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Movies</h2>
+          <p style={cardDescStyle}>Add, edit, or remove movie listings and showtimes.</p>
+        </div>
+
+        {/* Manage Promotions Card */}
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Promotions') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Promotions</h2>
+          <p style={cardDescStyle}>Create, update, and manage all active promotions.</p>
+        </div>
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Users') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Users</h2>
+          <p style={cardDescStyle}>Search, view, and edit user accounts and permissions.</p>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
@@ -91,7 +163,7 @@ export default function App() {
     localStorage.setItem('userId', userData.userId);
 
     // Handle routing based on user role
-    if (userData.role === 'admin') {
+    if (userData.role === 'Admin') {
       setCurrentPage('admin-dashboard');
     } else {
       setCurrentPage('home');
@@ -210,6 +282,12 @@ export default function App() {
         address: addressData,     // This will be an object or null
         paymentCards: cardsData,  // This will be an array
       }; 
+
+    // This checks if we are on the initial page load (currentPage is 'home')
+    // and navigates to the dashboard if the fetched user is an admin.
+    if (currentPage === 'home' && fullUserData.userTypeName === 'Admin') {
+      setCurrentPage('admin-dashboard');
+    }
 
       setCurrentUser(fullUserData); 
       console.log('Fetched full user profile:', fullUserData); 
@@ -343,20 +421,27 @@ export default function App() {
           
         const formattedBillingAddress = formatAddressForAPI(billingAddress);
         
-        // This payload matches your 'CardRequest' DTO
-        const payload = {
-          brand: card.cardType,
-          expMonth: month,
-          expYear: `20${year}`,
-          billingAddress: formattedBillingAddress,
-        };
-        
-        // Only add 'cardNumber' if the user entered one
-        // This assumes PATCH can handle partial updates
-        if (card.cardNumber) {
-          payload.cardNumber = card.cardNumber;
+        // This MUST be a new card with a number entered
+        if (card.id === null && !card.cardNumber) {
+          throw new Error("New card is missing a card number.");
         }
         
+        const payload = {
+          token: card.cardNumber ? card.cardNumber : null, 
+          last4: card.cardNumber 
+            ? card.cardNumber.slice(-4) 
+            : card.last4, // Assumes existing cards have 'last4' property
+          brand: card.cardType,
+          expMonth: parseInt(month, 10),
+          expYear: parseInt(`20${year}`, 10),
+          addressReq: formattedBillingAddress,
+          billingSameAsHome: card.billingSameAsHome
+        };
+
+        if (card.id !== null) { // This is an UPDATE
+          delete payload.token; // Do not send token on update
+          
+        }
         return payload;
       };
       
