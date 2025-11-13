@@ -421,20 +421,27 @@ export default function App() {
           
         const formattedBillingAddress = formatAddressForAPI(billingAddress);
         
-        // This payload matches your 'CardRequest' DTO
-        const payload = {
-          brand: card.cardType,
-          expMonth: month,
-          expYear: `20${year}`,
-          billingAddress: formattedBillingAddress,
-        };
-        
-        // Only add 'cardNumber' if the user entered one
-        // This assumes PATCH can handle partial updates
-        if (card.cardNumber) {
-          payload.cardNumber = card.cardNumber;
+        // This MUST be a new card with a number entered
+        if (card.id === null && !card.cardNumber) {
+          throw new Error("New card is missing a card number.");
         }
         
+        const payload = {
+          token: card.cardNumber ? card.cardNumber : null, 
+          last4: card.cardNumber 
+            ? card.cardNumber.slice(-4) 
+            : card.last4, // Assumes existing cards have 'last4' property
+          brand: card.cardType,
+          expMonth: parseInt(month, 10),
+          expYear: parseInt(`20${year}`, 10),
+          addressReq: formattedBillingAddress,
+          billingSameAsHome: card.billingSameAsHome
+        };
+
+        if (card.id !== null) { // This is an UPDATE
+          delete payload.token; // Do not send token on update
+          
+        }
         return payload;
       };
       
