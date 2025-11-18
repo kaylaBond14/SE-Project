@@ -1,5 +1,6 @@
 package com.cinema.backend.controller;
 
+import com.cinema.backend.dto.SeatSelectionDto;
 import com.cinema.backend.model.Booking;
 import com.cinema.backend.model.Ticket;
 import com.cinema.backend.repository.TicketRepository;
@@ -39,16 +40,22 @@ public class BookingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(b);
     }
 
-    // Assign seats to all tickets in the booking
+    //Convert to ticket with Seat Request
     @PostMapping("/{bookingId}/assign-seats")
     public ResponseEntity<Void> assignSeats(@PathVariable Long bookingId,
-                                            @RequestBody List<Long> seatIds) {
-        bookingService.assignSeats(bookingId, seatIds);
+                                            @RequestBody AssignSeatsRequest body) {
+        List<BookingService.TicketWithSeatRequest> ticketsWithSeats = 
+            body.getSelections().stream()
+                .map(sel -> new BookingService.TicketWithSeatRequest(
+                    sel.getAge(),
+                    sel.getPriceCents(),
+                    sel.getSeatId()
+                ))
+                .toList();
+        
+        bookingService.assignSeats(bookingId, ticketsWithSeats);
         return ResponseEntity.noContent().build();
     }
-
-    //TODO: BUILD APPLYPROMO here or in promo Controller ???
-    //promotionService.applyToBooking(bookingId, body.getCode());
 
     // Confirm booking (optional state change)
     @PostMapping("/{bookingId}/confirm")
@@ -94,4 +101,21 @@ public class BookingController {
     public ResponseEntity<String> conflict(IllegalStateException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
+
+    public static class AssignSeatsRequest {
+    private Long bookingId;
+    private List<SeatSelectionDto> selections;
+    
+    public Long getBookingId() { return bookingId; }
+    public void setBookingId(Long bookingId) { this.bookingId = bookingId; }
+    
+    public List<SeatSelectionDto> getSelections() { return selections; }
+    public void setSelections(List<SeatSelectionDto> selections) { 
+        this.selections = selections; 
+    }
+}
+
+
+
+
 }

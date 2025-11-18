@@ -40,8 +40,16 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalArgumentException("At least one ticket is required");
         }
 
-        screeningRepo.findById(screeningId)
+        Screening screening = screeningRepo.findById(screeningId)
                 .orElseThrow(() -> new IllegalArgumentException("Screening not found: " + screeningId));
+
+        if (screening.isCanceled()) {
+            throw new IllegalStateException("Cannot book canceled screening");
+        }
+
+        if (screening.getAvailableSeats() != null && screening.getAvailableSeats() < tickets.size()) {
+            throw new IllegalStateException("Not enough seats available for screening");
+        }
 
         int subtotal = tickets.stream()
                 .mapToInt(tr -> {
@@ -57,7 +65,7 @@ public class BookingServiceImpl implements BookingService {
         b.setScreeningId(screeningId);
         b.setBookingNumber(generateRef(12));
         b.setSubtotalCost(subtotal);
-        b.setFeesCost(0);    // FIX LATER FOR PAYMENT
+        b.setFeesCost(0);    
         b.setTaxCost(0);
         b.setDiscountAmount(0);
         b.setTotalCost(subtotal);
@@ -65,73 +73,90 @@ public class BookingServiceImpl implements BookingService {
 
         b = bookingRepo.save(b);
 
-        for (TicketRequest tr : tickets) {
-            Ticket t = new Ticket();
-            t.setBookingId(b.getId());
-            t.setTicketNumber(generateRef(14));
-            t.setAgeClassification(tr.age);
-            t.setPriceCost(tr.priceCents);
-            t.setScreeningId(screeningId); 
-            ticketRepo.save(t);
-        }
-
         return b;
     }
 
     @Override
     @Transactional
-    public void assignSeats(Long bookingId, List<Long> seatIds) {
+    public void assignSeats(Long bookingId, 
+                        List<TicketWithSeatRequest> ticketsWithSeats) {
         if (bookingId == null) throw new IllegalArgumentException("bookingId is required");
-        if (seatIds == null || seatIds.isEmpty()) {
-            throw new IllegalArgumentException("Seat list cannot be empty");
+        if (ticketsWithSeats == null || ticketsWithSeats.isEmpty()) {
+            throw new IllegalArgumentException("Ticket and seat list cannot be empty");
         }
 
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Booking not found: " + bookingId));
 
-        List<Ticket> tickets = ticketRepo.findByBookingId(bookingId);
-        if (tickets.isEmpty()) {
-            throw new IllegalStateException("No tickets exist for this booking");
-        }
-        if (tickets.size() != seatIds.size()) {
-            throw new IllegalArgumentException("Seat count must match ticket count (tickets=" +
-                    tickets.size() + ", seats=" + seatIds.size() + ")");
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalStateException("Can only assign seats to pending bookings");
         }
 
-        Long screeningId = tickets.get(0).getScreeningId();
+        int selectionsTotal = ticketsWithSeats.stream()
+            .mapToInt(t -> t.priceCents)
+            .sum();
+
+        if (selectionsTotal != booking.getSubtotalCost()) {
+        throw new IllegalArgumentException(
+            "Seat selections don't match the original booking. " +
+            "Expected total: " + booking.getSubtotalCost() + " cents, " +
+            "but got: " + selectionsTotal + " cents. " +
+            "Please select the correct number of seats with matching ticket types."
+        );
+    }
+
         
-        boolean sameScreening = tickets.stream().allMatch(t -> Objects.equals(t.getScreeningId(), screeningId));
-        if (!sameScreening) throw new IllegalStateException("Tickets belong to different screenings");
 
+        List<Ticket> existingTickets = ticketRepo.findByBookingId(bookingId);
+        if (!existingTickets.isEmpty()) {
+            throw new IllegalStateException("Seats already assigned to this booking");
+        }
+
+        Long screeningId = booking.getScreeningId();
+        
         Screening screening = screeningRepo.findById(screeningId)
                 .orElseThrow(() -> new IllegalArgumentException("Screening not found: " + screeningId));
         Long hallId = screening.getHall().getId();
 
-        // Validate seats exist and belong to the same hall
+
+        List<Long> seatIds = ticketsWithSeats.stream()
+                .map(t -> t.seatId)
+                .toList();
+
         List<Seat> chosen = seatRepo.findAllById(seatIds);
         if (chosen.size() != seatIds.size()) {
-            // find which are missing for clearer error
             Set<Long> foundIds = chosen.stream().map(Seat::getId).collect(Collectors.toSet());
             List<Long> missing = seatIds.stream().filter(id -> !foundIds.contains(id)).toList();
             throw new IllegalArgumentException("Seats not found: " + missing);
         }
+        
         boolean sameHall = chosen.stream().allMatch(seat -> Objects.equals(seat.getHall().getId(), hallId));
         if (!sameHall) {
             throw new IllegalArgumentException("All selected seats must be in hall " + hallId);
         }
 
-        // Assign seats
-        for (int i = 0; i < tickets.size(); i++) {
-            Ticket t = tickets.get(i);
-            Long seatId = seatIds.get(i);
+        Set<Long> uniqueSeats = new HashSet<>(seatIds);
+        if (uniqueSeats.size() != seatIds.size()) {
+            throw new IllegalArgumentException("Cannot select the same seat multiple times");
+        }
 
+        for (Long seatId : seatIds) {
             if (ticketRepo.existsByScreeningIdAndSeatId(screeningId, seatId)) {
                 throw new IllegalStateException("Seat already taken: " + seatId);
             }
+        }
 
+        for (TicketWithSeatRequest tws : ticketsWithSeats) {
+            Ticket ticket = new Ticket();
+            ticket.setBookingId(bookingId);
+            ticket.setScreeningId(screeningId);
+            ticket.setTicketNumber(generateRef(14));
+            ticket.setAgeClassification(tws.age);
+            ticket.setPriceCost(tws.priceCents);
+            ticket.setSeatId(tws.seatId); 
+            
             try {
-                t.setSeatId(seatId);
-                ticketRepo.saveAndFlush(t); 
+                ticketRepo.saveAndFlush(ticket);
             } catch (DataIntegrityViolationException ex) {
                 throw new IllegalStateException("One or more selected seats have just been taken. Please refresh.", ex);
             }

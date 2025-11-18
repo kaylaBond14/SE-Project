@@ -11,11 +11,11 @@ public interface BookingService {
                          Long screeningId,
                          List<TicketRequest> tickets);
 
-    void assignSeats(Long bookingId, List<Long> seatIds);
+    void assignSeats(Long bookingId, List<TicketWithSeatRequest> ticketsWithSeats);
 
     void confirmBooking(Long bookingId);
 
-    //DTO HERE
+    
     class TicketRequest {
         public TicketAgeClassification age;
         public int priceCents;
@@ -23,6 +23,19 @@ public interface BookingService {
         public TicketRequest() {}
         public TicketRequest(TicketAgeClassification age, int priceCents) {
             this.age = age; this.priceCents = priceCents;
+        }
+    }
+
+    class TicketWithSeatRequest {
+        public TicketAgeClassification age;
+        public int priceCents;
+        public Long seatId;
+
+        public TicketWithSeatRequest() {}
+        public TicketWithSeatRequest(TicketAgeClassification age, int priceCents, Long seatId) {
+            this.age = age;
+            this.priceCents = priceCents;
+            this.seatId = seatId;
         }
     }
 }

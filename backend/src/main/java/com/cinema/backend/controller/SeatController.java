@@ -1,8 +1,10 @@
 package com.cinema.backend.controller;
 
 import com.cinema.backend.dto.SeatAvailability;
+import com.cinema.backend.dto.SeatView;
 import com.cinema.backend.model.Booking;
 import com.cinema.backend.repository.BookingRepository;
+import com.cinema.backend.services.BookingService;
 import com.cinema.backend.repository.SeatRepository;
 import com.cinema.backend.services.SeatService;
 import org.springframework.http.HttpStatus;
@@ -18,16 +20,19 @@ public class SeatController {
     private final SeatService seatService;
     private final BookingRepository bookingRepo;
     private final SeatRepository seatRepo;
+    private final BookingService bookingService;
 
     public SeatController(SeatService seatService,
                           BookingRepository bookingRepo,
-                          SeatRepository seatRepo) {
+                          SeatRepository seatRepo,
+                          BookingService bookingService) {
         this.seatService = seatService;
         this.bookingRepo = bookingRepo;
         this.seatRepo = seatRepo;
+        this.bookingService = bookingService;
     }
 
-    // GET /api/screenings/{id}/seatmap
+    // GET /api/screenings/{screeningId}/seatmap
     @GetMapping("/api/screenings/{screeningId}/seatmap")
     public List<SeatAvailability> seatMap(@PathVariable Long screeningId) {
         return seatService.getSeatMap(screeningId);
@@ -47,24 +52,16 @@ public class SeatController {
     //GET /api/halls/{hallId}/seats
     @GetMapping("/api/halls/{hallId}/seats")
     public Object seatsInHall(@PathVariable Long hallId) {
-        return seatRepo.findByHall_IdOrderByRowNumAscColNumAsc(hallId);
-    }
-
-    // POST /api/screenings/{id}/reserve
-    @PostMapping("/api/screenings/{screeningId}/reserve")
-    public ResponseEntity<Void> reserve(@PathVariable Long screeningId,
-                                        @RequestBody ReserveSeatsRequest body) {
-        seatService.reserveSeats(body.getBookingId(), screeningId, body.getSeatIds());
-        return ResponseEntity.noContent().build();
-    }
-    public static class ReserveSeatsRequest {
-        private Long bookingId;
-        private List<Long> seatIds;
-
-        public Long getBookingId() { return bookingId; }
-        public void setBookingId(Long bookingId) { this.bookingId = bookingId; }
-        public List<Long> getSeatIds() { return seatIds; }
-        public void setSeatIds(List<Long> seatIds) { this.seatIds = seatIds; }
+        return seatRepo.findByHall_IdOrderByRowNumAscColNumAsc(hallId)
+                .stream()
+                .map(seat -> new SeatView(
+                        seat.getId(),
+                        seat.getRowNum(),
+                        seat.getColNum(),
+                        seat.getLabel(),
+                        hallId
+                ))
+                .toList();
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
