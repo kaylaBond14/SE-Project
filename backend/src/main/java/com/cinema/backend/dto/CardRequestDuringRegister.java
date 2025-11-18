@@ -1,6 +1,6 @@
 package com.cinema.backend.dto;
 
-import jakarta.validation.constraints.*;
+
 
 public record CardRequestDuringRegister(
        String brand,     // "VISA","MASTERCARD","AMEX","DISCOVER","OTHER"
