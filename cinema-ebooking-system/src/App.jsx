@@ -412,36 +412,41 @@ export default function App() {
         (existing) => !cardIdsToUpdate.includes(existing.id)
       );
 
-      // Helper to build payload 
+     // Helper to build payload 
       const buildCardPayload = (card) => {
         const [month, year] = card.expDate.split('/');
         const billingAddress = card.billingSameAsHome 
-          ? updatedData.homeAddress // Use the (already formatted) home address
+          ? updatedData.homeAddress 
           : card.billingAddress;
           
         const formattedBillingAddress = formatAddressForAPI(billingAddress);
         
-        // This MUST be a new card with a number entered
-        if (card.id === null && !card.cardNumber) {
-          throw new Error("New card is missing a card number.");
-        }
+        // No check here; we just build the payload.
         
         const payload = {
-          token: card.cardNumber ? card.cardNumber : null, 
-          last4: card.cardNumber 
+          // FIX: Pass the 16-digit string (even if empty) directly to 'token'
+          token: card.cardNumber, 
+          
+          // FIX: Calculate last4 based on the card number input or use the existing one
+          last4: (card.cardNumber && card.cardNumber.length >= 4)
             ? card.cardNumber.slice(-4) 
-            : card.last4, // Assumes existing cards have 'last4' property
+            : card.last4, 
+            
           brand: card.cardType,
+          
+          // FIX: Use parseInt() for DTO type matching
           expMonth: parseInt(month, 10),
           expYear: parseInt(`20${year}`, 10),
-          addressReq: formattedBillingAddress,
+          
+          // FIX: Use the correct key name 'addressReq'
+          addressReq: formattedBillingAddress, 
+          
+          // FIX: Include the required boolean
           billingSameAsHome: card.billingSameAsHome
         };
 
-        if (card.id !== null) { // This is an UPDATE
-          delete payload.token; // Do not send token on update
-          
-        }
+        // REMOVED: The problematic 'if (card.id !== null) { delete payload.token; }'
+
         return payload;
       };
       
@@ -466,7 +471,7 @@ export default function App() {
         try {
           console.log("Adding new card...");
           const payload = buildCardPayload(card);
-          if (!payload.cardNumber) { // New cards MUST have a number
+          if (!payload.token) { // New cards MUST have a number
              throw new Error("New card is missing a card number.");
           }
           
