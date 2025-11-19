@@ -1,13 +1,17 @@
 package com.cinema.backend.repository;
 
 import com.cinema.backend.model.Movie;
+
+import io.micrometer.common.lang.NonNull;
+
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.List;
+
 
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
@@ -52,32 +56,35 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
 
     // Filter movies by genre (category title)
     @EntityGraph(attributePaths = {"categories"})
-@Query("""
-  SELECT m
-  FROM Movie m
-  WHERE (:genre IS NULL)
-     OR EXISTS (
-          SELECT 1
-          FROM m.categories c
-          WHERE LOWER(TRIM(c.title)) = LOWER(TRIM(:genre))
-     )
-  ORDER BY m.releaseDate DESC
-""")
-List<Movie> filterByGenre(@Param("genre") String genre);
+   @Query("""
+   SELECT m
+   FROM Movie m
+   WHERE (:genre IS NULL)
+      OR EXISTS (
+            SELECT 1
+            FROM m.categories c
+            WHERE LOWER(TRIM(c.title)) = LOWER(TRIM(:genre))
+      )
+   ORDER BY m.releaseDate DESC
+   """)
+   List<Movie> filterByGenre(@Param("genre") String genre);
 
-// Distinct genres for dropdown
-@EntityGraph(attributePaths = {"categories"})
-@Query("""
-  select distinct c.title
-  from Movie m
-  join m.categories c
-  where c.title is not null
-  order by c.title
-""")
-List<String> distinctGenres();
+   // Distinct genres for dropdown
+   @EntityGraph(attributePaths = {"categories"})
+   @Query("""
+   select distinct c.title
+   from Movie m
+   join m.categories c
+   where c.title is not null
+   order by c.title
+   """)
+   List<String> distinctGenres();
+   
 
-@EntityGraph(attributePaths = "categories")
-Optional<Movie> findById(Long id);
+   @Query("select distinct m from Movie m left join fetch m.categories")
+   List<Movie> findAllWithCategories();
 
+   @Query("select m from Movie m left join fetch m.categories where m.id = :id")
+   Optional<Movie> findByIdWithCategories(@Param("id") Long id);
 
 }

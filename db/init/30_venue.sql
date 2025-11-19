@@ -41,13 +41,18 @@ CREATE INDEX idx_screenings_hall ON screenings (hall_id);
 
 -- available seats 
 DROP TRIGGER IF EXISTS trg_screenings_after_insert;
+DROP TRIGGER IF EXISTS trg_screenings_before_update;
+
 DELIMITER $$
-CREATE TRIGGER trg_screenings_after_insert
-AFTER INSERT ON screenings
+CREATE TRIGGER trg_screenings_before_insert
+BEFORE INSERT ON screenings
 FOR EACH ROW
 BEGIN
-  DECLARE total INT;
-  SELECT COUNT(*) INTO total FROM seats WHERE hall_id = NEW.hall_id;
-  UPDATE screenings SET available_seats = total WHERE id = NEW.id;
+  DECLARE total INT DEFAULT 0;
+  SELECT COUNT(*) INTO total 
+  FROM seats 
+  WHERE hall_id = NEW.hall_id;
+  
+  SET NEW.available_seats = total;
 END$$
 DELIMITER ;
