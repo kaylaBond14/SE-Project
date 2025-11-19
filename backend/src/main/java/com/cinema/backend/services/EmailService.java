@@ -102,10 +102,9 @@ public class EmailService {
         }
     }
 
+
     // Sends a "Profile Edited Notification" email with no attached link or tokens
-    public void sendProfileEditedEmail(String email) {
-        String subject = "Your Profile has been Changed";
-        String message = "Your account details have been edited. If you did not make these changes, please log in immediately and change your password.";
+    private void sendProfileEditedEmail(String email, String subject, String message) {
         try {
             String content = """
                     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background-color: #f9f9f9; text-align: center;">
@@ -124,5 +123,41 @@ public class EmailService {
         } catch (Exception e) {
             System.err.println("Failed to send email: " + e.getMessage());
         }
+    }
+
+    public void sendUpdatedBasicsEmail(String email) {
+        String subject = "Your Profile has been Changed";
+        String message = "Your account details (name, phone number, and/or Promotion Opt-in Status) have been edited. If you did not make these changes, please log in immediately and change your password.";
+        sendProfileEditedEmail(email, subject, message);
+    }
+
+    public void sendPasswordChangedEmail(String email) {
+        String subject = "Your Password has been Changed";
+        String message = "Your account's password has been edited. If you did not make this change, please log in immediately and change your password.";
+        sendProfileEditedEmail(email, subject, message);
+    }
+
+    public void sendUpdatedAddressEmail(String email) {
+        String subject = "Your Home Address has been Changed";
+        String message = "Your account's Home Address has been edited. If you did not make this change, please log in immediately and change your password.";
+        sendProfileEditedEmail(email, subject, message);
+    }
+
+    public void sendAddedCardEmail(String email) {
+        String subject = "Your Payment Card Info has been Changed";
+        String message = "A new Payment Card has been added to your account. If you did not make this change, please log in immediately and change your password.";
+        sendProfileEditedEmail(email, subject, message);
+    }
+
+    public void sendUpdatedCardEmail(String email) {
+        String subject = "Your Payment Card Info has been Changed";
+        String message = "One of your account's Payment Cards has been edited. If you did not make this change, please log in immediately and change your password.";
+        sendProfileEditedEmail(email, subject, message);
+    }
+
+    public void sendDeletedCardEmail(String email) {
+        String subject = "Your Payment Card Info has been Changed";
+        String message = "One of your account's Payment Cards has been deleted. If you did not make this change, please log in immediately and change your password.";
+        sendProfileEditedEmail(email, subject, message);
     }
 }
