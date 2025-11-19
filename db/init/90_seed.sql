@@ -74,9 +74,9 @@ INSERT INTO fees (name, amount, effective_on, active) VALUES
 
 -- promotions
 INSERT INTO promotions (code, description, discount_type, discount_value, min_purchase_amount, max_uses, starts_on, ends_on, active) VALUES
-('WELCOME10', '10% off for new customers', 'PERCENT', 10, 1000, NULL, '2024-01-01', '2025-12-31', TRUE);
--- ('SAVE5', '$5 off orders over $20', 'FIXED', 500, 2000, NULL, '2024-01-01', '2025-12-31', TRUE),
--- ('EARLYBIRD', '15% off matinee shows', 'PERCENT', 15, 0, NULL, '2024-01-01', '2025-12-31', TRUE);
+('WELCOME10', '10% off for new customers', 'PERCENT', 10, 1000, NULL, '2024-01-01', '2025-12-31', TRUE),
+('SAVE5', '$5 off orders over $20', 'FIXED', 500, 2000, NULL, '2024-01-01', '2025-12-31', TRUE),
+('EARLYBIRD', '15% off early shows', 'PERCENT', 15, 0, NULL, '2024-01-01', '2025-12-31', TRUE);
 
 -- pricing
 INSERT INTO ticket_prices (age_classification, price, effective_on) VALUES
@@ -120,54 +120,64 @@ INSERT IGNORE INTO movie_categories (movie_id, category_id) VALUES
 (10, 6); -- Wuthering Heights: Romance
 
 
--- Insert a basic hall for screenings
+-- Insert halls for screenings
 INSERT IGNORE INTO halls (name, seat_rows, seat_cols) VALUES
-('Main Theater', 10, 12);
+('Hall A - Main Theater', 10, 12),
+('Hall B - IMAX', 15, 20),
+('Hall C - VIP', 6, 8);
 
--- Insert seats for the hall (simplified - just first few rows)
-INSERT IGNORE INTO seats (hall_id, row_num, col_num, label) VALUES
-(1, 1, 1, 'A1'), (1, 1, 2, 'A2'), (1, 1, 3, 'A3'), (1, 1, 4, 'A4'), (1, 1, 5, 'A5'), (1, 1, 6, 'A6'),
-(1, 1, 7, 'A7'), (1, 1, 8, 'A8'), (1, 1, 9, 'A9'), (1, 1, 10, 'A10'), (1, 1, 11, 'A11'), (1, 1, 12, 'A12'),
-(1, 2, 1, 'B1'), (1, 2, 2, 'B2'), (1, 2, 3, 'B3'), (1, 2, 4, 'B4'), (1, 2, 5, 'B5'), (1, 2, 6, 'B6'),
-(1, 2, 7, 'B7'), (1, 2, 8, 'B8'), (1, 2, 9, 'B9'), (1, 2, 10, 'B10'), (1, 2, 11, 'B11'), (1, 2, 12, 'B12'),
-(1, 3, 1, 'C1'), (1, 3, 2, 'C2'), (1, 3, 3, 'C3'), (1, 3, 4, 'C4'), (1, 3, 5, 'C5'), (1, 3, 6, 'C6'),
-(1, 3, 7, 'C7'), (1, 3, 8, 'C8'), (1, 3, 9, 'C9'), (1, 3, 10, 'C10'), (1, 3, 11, 'C11'), (1, 3, 12, 'C12'),
-(1, 4, 1, 'D1'), (1, 4, 2, 'D2'), (1, 4, 3, 'D3'), (1, 4, 4, 'D4'), (1, 4, 5, 'D5'), (1, 4, 6, 'D6'),
-(1, 4, 7, 'D7'), (1, 4, 8, 'D8'), (1, 4, 9, 'D9'), (1, 4, 10, 'D10'), (1, 4, 11, 'D11'), (1, 4, 12, 'D12'),
-(1, 5, 1, 'E1'), (1, 5, 2, 'E2'), (1, 5, 3, 'E3'), (1, 5, 4, 'E4'), (1, 5, 5, 'E5'), (1, 5, 6, 'E6'),
-(1, 5, 7, 'E7'), (1, 5, 8, 'E8'), (1, 5, 9, 'E9'), (1, 5, 10, 'E10'), (1, 5, 11, 'E11'), (1, 5, 12, 'E12'),
-(1, 6, 1, 'F1'), (1, 6, 2, 'F2'), (1, 6, 3, 'F3'), (1, 6, 4, 'F4'), (1, 6, 5, 'F5'), (1, 6, 6, 'F6'),
-(1, 6, 7, 'F7'), (1, 6, 8, 'F8'), (1, 6, 9, 'F9'), (1, 6, 10, 'F10'), (1, 6, 11, 'F11'), (1, 6, 12, 'F12'),
-(1, 7, 1, 'G1'), (1, 7, 2, 'G2'), (1, 7, 3, 'G3'), (1, 7, 4, 'G4'), (1, 7, 5, 'G5'), (1, 7, 6, 'G6'),
-(1, 7, 7, 'G7'), (1, 7, 8, 'G8'), (1, 7, 9, 'G9'), (1, 7, 10, 'G10'), (1, 7, 11, 'G11'), (1, 7, 12, 'G12'),
-(1, 8, 1, 'H1'), (1, 8, 2, 'H2'), (1, 8, 3, 'H3'), (1, 8, 4, 'H4'), (1, 8, 5, 'H5'), (1, 8, 6, 'H6'),
-(1, 8, 7, 'H7'), (1, 8, 8, 'H8'), (1, 8, 9, 'H9'), (1, 8, 10, 'H10'), (1, 8, 11, 'H11'), (1, 8, 12, 'H12'),
-(1, 9, 1, 'I1'), (1, 9, 2, 'I2'), (1, 9, 3, 'I3'), (1, 9, 4, 'I4'), (1, 9, 5, 'I5'), (1, 9, 6, 'I6'),
-(1, 9, 7, 'I7'), (1, 9, 8, 'I8'), (1, 9, 9, 'I9'), (1, 9, 10, 'I10'), (1, 9, 11, 'I11'), (1, 9, 12, 'I12'),
-(1, 10, 1, 'J1'), (1, 10, 2, 'J2'), (1, 10, 3, 'J3'), (1, 10, 4, 'J4'), (1, 10, 5, 'J5'), (1, 10, 6, 'J6'),
-(1, 10, 7, 'J7'), (1, 10, 8, 'J8'), (1, 10, 9, 'J9'), (1, 10, 10, 'J10'), (1, 10, 11, 'J11'), (1, 10, 12, 'J12');
+-- Generate seats for the halls 
+INSERT IGNORE INTO seats (hall_id, row_num, col_num, label)
+SELECT 
+    h.id AS hall_id,
+    r.n AS row_num,
+    c.n AS col_num,
+    CONCAT(CHAR(64 + r.n), c.n) AS label
+FROM halls h
+JOIN (
+    SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL
+    SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL
+    SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15
+) AS r
+    ON r.n <= h.seat_rows
+JOIN (
+    SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL
+    SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10 UNION ALL
+    SELECT 11 UNION ALL SELECT 12 UNION ALL SELECT 13 UNION ALL SELECT 14 UNION ALL SELECT 15 UNION ALL
+    SELECT 16 UNION ALL SELECT 17 UNION ALL SELECT 18 UNION ALL SELECT 19 UNION ALL SELECT 20
+) AS c
+    ON c.n <= h.seat_cols;
 
--- Insert sample screenings (hardcoded showtimes as mentioned in requirements)
+
+-- Insert sample screenings 
 INSERT IGNORE INTO screenings (movie_id, hall_id, starts_at, ends_at) VALUES
--- Currently Running movies (past release dates)
-(1, 1, '2024-09-17 14:00:00', '2024-09-17 16:28:00'), -- 2:00 PM
-(1, 1, '2024-09-17 17:00:00', '2024-09-17 19:28:00'), -- 5:00 PM  
-(1, 1, '2024-09-17 20:00:00', '2024-09-17 22:28:00'), -- 8:00 PM
-(2, 1, '2024-09-17 14:30:00', '2024-09-17 17:26:00'),
-(2, 1, '2024-09-17 18:00:00', '2024-09-17 20:56:00'),
-(3, 1, '2024-09-17 15:00:00', '2024-09-17 17:10:00'),
-(3, 1, '2024-09-17 19:30:00', '2024-09-17 21:40:00'), 
-(4, 1, '2025-11-25 14:00:00', '2025-11-25 16:00:00'),
-(4, 1, '2025-11-25 17:00:00', '2025-11-25 19:00:00'),
+-- The Martian
+(1, 1, '2025-11-05 14:00:00', '2025-11-05 16:31:00'),
+(1, 2, '2025-12-21 20:00:00', '2025-12-21 22:31:00'),
+-- Despicable Me 4
+(2, 2, '2025-11-05 17:00:00', '2025-11-05 18:34:00'),
+(2, 3, '2026-01-05 14:00:00', '2026-01-05 15:34:00'),
+-- Top Gun: Maverick
+(3, 1, '2025-11-06 14:00:00', '2025-11-06 16:10:00'),
+(3, 3, '2025-11-06 17:00:00', '2025-11-06 19:10:00'),
+-- The Accountant 2
+(4, 2, '2025-11-07 14:00:00', '2025-11-07 16:14:00'),
+(4, 1, '2025-12-22 17:00:00', '2025-12-22 19:14:00'),
+-- Avatar 3 (releases 2025-12-20)
 (5, 1, '2025-12-21 14:00:00', '2025-12-21 17:00:00'),
-(5, 1, '2025-12-21 18:00:00', '2025-12-21 21:00:00'),
-(6, 1, '2025-05-17 14:00:00', '2025-05-17 15:50:00'),
-(6, 1, '2025-05-17 18:00:00', '2025-05-17 19:50:00'),
-(7, 1, '2025-11-08 14:00:00', '2025-11-08 15:41:00'),
-(7, 1, '2025-11-08 19:00:00', '2025-11-08 20:41:00'),
-(8, 1, '2025-11-22 13:00:00', '2025-11-22 15:18:00'),
-(8, 1, '2025-11-22 16:00:00', '2025-11-22 18:18:00'),
-(9, 1, '2025-04-07 14:00:00', '2025-04-07 15:33:00'),
-(9, 1, '2025-04-07 20:00:00', '2025-04-07 21:33:00'), 
+(5, 2, '2025-12-21 17:00:00', '2025-12-21 20:00:00'),
+-- Final Destination: Bloodlines
+(6, 3, '2025-11-08 14:00:00', '2025-11-08 15:50:00'),
+(6, 2, '2026-01-06 20:00:00', '2026-01-06 21:50:00'),
+-- The Running Man (101 min, released 2025-11-07)
+(7, 1, '2025-11-08 17:00:00', '2025-11-08 18:41:00'),
+(7, 1, '2026-01-07 20:00:00', '2026-01-07 21:41:00'),
+-- Wicked: For Good (releases 2025-11-21)
+(8, 2, '2025-11-22 14:00:00', '2025-11-22 16:18:00'),
+(8, 2, '2026-01-05 20:00:00', '2026-01-05 22:18:00'),
+-- The Bride 
+(9, 3, '2025-12-22 14:00:00', '2025-12-22 15:33:00'),
+(9, 3, '2026-01-08 17:00:00', '2026-01-08 18:33:00'),
+-- Wuthering Heights (releases 2026-02-13)
 (10, 1, '2026-02-14 14:00:00', '2026-02-14 16:09:00'),
-(10, 1, '2026-02-14 19:00:00', '2026-02-14 21:09:00');
+(10, 3, '2026-02-14 17:00:00', '2026-02-14 19:09:00');
