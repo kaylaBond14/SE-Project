@@ -1,11 +1,15 @@
 package com.cinema.backend.services;
 
+import java.time.LocalDate;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import com.cinema.backend.repository.UserRepository;
 
 import jakarta.mail.internet.MimeMessage;
 
@@ -159,5 +163,41 @@ public class EmailService {
         String subject = "Your Payment Card Info has been Changed";
         String message = "One of your account's Payment Cards has been deleted. If you did not make this change, please log in immediately and change your password.";
         sendProfileEditedEmail(email, subject, message);
+    }
+
+    
+    // Sends a promo email with no attached link or tokens
+    // Similar to sendProfileEditedEmail(), but just with different formatting
+    private void sendPromotionEmail(String email, String subject, String message1, String promoCode, String message2, String duration) {
+        try {
+            String content = """
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background-color: #f9f9f9; text-align: center;">
+                        <h2 style="color: #333;">%s</h2>
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                        <p style="font-size: 16px; color: #218614ff;">%s</p>
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                        <p style="font-size: 14px; color: #555;">%s</p>
+                        <p style="font-size: 12px; color: #aaa;">This is an automated message. Please do not reply.</p>
+                    </div>
+                """.formatted(subject, message1, promoCode, message2, duration);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            helper.setTo(email);
+            helper.setSubject(subject);
+            helper.setFrom(from);
+            helper.setText(content, true);
+            mailSender.send(mimeMessage);
+        } catch (Exception e) {
+            System.err.println("Failed to send email: " + e.getMessage());
+        }
+    }
+    
+    public void sendPromotionEmail(String email, String promoCode, Integer discount, LocalDate startsOn, LocalDate endsOn) {
+        String subject = "New Promotion Just for You! Save " + discount + "% off your next purchase!";
+        //String message = "We're excited to offer you an exclusive promotion:\n" + promoCode + "\nUse this code during your next purchase to enjoy a " + discount + "% discount!";
+        String message1 = "We're excited to offer you an exclusive promotion:";
+        String message2 = "Use this code during your next purchase to enjoy a " + discount + "% discount!";
+        String duration = " This promotion is valid from " + startsOn.toString() + " to " + endsOn.toString() + ".";
+        sendPromotionEmail(email, subject, message1, promoCode, message2, duration);
     }
 }
