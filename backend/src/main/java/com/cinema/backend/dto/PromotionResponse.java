@@ -1,5 +1,7 @@
 package com.cinema.backend.dto;
 
+import java.time.LocalDate;
+
 public record PromotionResponse(
     Long id,
     String code,

@@ -2,6 +2,7 @@ package com.cinema.backend.controller.admin;
 
 import com.cinema.backend.dto.CreatePromotionRequest;
 import com.cinema.backend.dto.PromotionResponse;
+import com.cinema.backend.model.DiscountType;
 import com.cinema.backend.model.Promotion;
 import com.cinema.backend.model.User;
 import com.cinema.backend.services.EmailService;
@@ -60,7 +61,7 @@ public class AdminPromotionController {
     }
 
     @GetMapping
-    public List<Promotion> list() {
+    public List<PromotionResponse> list() {
         return promoRepo.findAll()
                 .stream()
                 .map(this::toDto)
