@@ -1,13 +1,14 @@
 package com.cinema.backend.controller;
 
+import com.cinema.backend.dto.ScreeningOption;
 import com.cinema.backend.model.Movie;
 import com.cinema.backend.repository.MovieRepository;
 import org.springframework.web.bind.annotation.*;
 import com.cinema.backend.model.Screening;
 import com.cinema.backend.repository.ScreeningRepository;
-import org.springframework.format.annotation.DateTimeFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import com.cinema.backend.dto.ScreeningOption;
 
 import org.springframework.http.HttpStatus;
 
@@ -119,6 +120,23 @@ public class MovieController {
     @GetMapping(value = "/{id}/showtimes", params = "!date")
     public List<Screening> getFutureShowtimes(@PathVariable Long id) {
         return screeningRepo.findFutureForMovieWithHall(id, java.time.LocalDateTime.now());
+    }
+
+    @GetMapping("/{id}/screening-options")
+    public List<ScreeningOption> getScreeningOptions(@PathVariable Long id) {
+        // Get all future screenings for this movie
+        List<Screening> screenings = screeningRepo.findFutureForMovieWithHall(
+            id, 
+            LocalDateTime.now()
+        );
+        
+        return screenings.stream()
+            .map(s -> new ScreeningOption(
+                s.getId(),
+                s.getStartsAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                s.getStartsAt().format(DateTimeFormatter.ofPattern("h:mm a"))
+            ))
+            .toList();
     }
 
     
