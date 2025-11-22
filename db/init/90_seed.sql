@@ -38,7 +38,76 @@ INSERT INTO users (
     '',
     FALSE,
     FALSE
+),
+(
+    'kayla14bond@gmail.com',
+    '$2a$10$M9Rp8oiSUvMXYRkw304tyuS/gNxWWTYKiYMfFjeH/llPiYM8GVYt6', -- Team2customer!
+    'Kayla',
+    'Bond',
+    '111-111-1111',
+    1,
+    2,
+    TRUE,
+    '',
+    '',
+    FALSE,
+    TRUE
 );
+-- Customer 1 home address
+INSERT INTO home_addresses (
+    user_id,
+    label,
+    street,
+    city,
+    state,
+    postal_code,
+    country
+) VALUES (
+    (SELECT id FROM users WHERE email = 'kayla14bond@gmail.com'),
+    'home',
+    '789 Seed St',
+    'Athens',
+    'GA',
+    '30605',
+    'USA'
+);
+-- Customer 1 billing address
+INSERT INTO billing_addresses (
+    user_id,
+    street,
+    city,
+    state,
+    postal_code,
+    country
+) VALUES (
+    (SELECT id FROM users WHERE email = 'kayla14bond@gmail.com'),
+    '123 Test Ln',
+    'Athens',
+    'GA',
+    '30606',
+    'USA'
+);
+-- Customer 1 payment card
+INSERT INTO payment_cards (
+    user_id,
+    brand,
+    last4,
+    exp_month,
+    exp_year,
+    billing_address_id,
+    token
+) VALUES (
+    (SELECT id FROM users WHERE email = 'kayla14bond@gmail.com'),
+    'VISA',
+    '1234',
+    12,
+    2027,
+    (SELECT id FROM billing_addresses 
+     WHERE user_id = (SELECT id FROM users WHERE email = 'kayla14bond@gmail.com')
+     ORDER BY id LIMIT 1),
+    'TOKEN_1234'
+);
+
 
 -- Insert movie categories/genres for filtering
 INSERT IGNORE INTO categories (title) VALUES

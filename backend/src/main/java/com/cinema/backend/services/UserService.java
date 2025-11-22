@@ -391,7 +391,7 @@ public class UserService {
             BillingAddress billing = findOrCreateBillingAddress(userId, billingFields);
             pc.setBillingAddress(billing);
         }
-        emailService.sendUpdatedCardEmail(user.getEmail());
+        //emailService.sendUpdatedCardEmail(user.getEmail());
         return cardRepository.save(pc);
     }
 

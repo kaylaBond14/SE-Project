@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties.Admin;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import com.cinema.backend.services.EmailService;
@@ -12,11 +13,13 @@ import com.cinema.backend.utils.JwtTokenUtil;
 import com.cinema.backend.dto.RegisterRequest;
 import com.cinema.backend.dto.ResetPasswordRequest;
 import com.cinema.backend.dto.UpdateUserRequest;
+import com.cinema.backend.model.Promotion;
 import com.cinema.backend.dto.AddressRequest;
 import com.cinema.backend.dto.CardRequest;
 import com.cinema.backend.dto.CardRequestDuringRegister;
 import com.cinema.backend.services.UserService;
 import com.cinema.backend.controller.UserController;
+import com.cinema.backend.controller.admin.AdminPromotionController;
 
 @SpringBootTest
 public class EmailTest {
@@ -29,12 +32,16 @@ public class EmailTest {
     
     @Autowired
     private UserController userController;
+
+    @Autowired
+    private AdminPromotionController AdminPromotion;
     
     private String email = "cinemaebookingteam2@gmail.com";
     //private String email = "nathanhienn@gmail.com";
     
     @Test
     public void test() {
+        /*
         // Create a new User object
         AddressRequest billingAddrReq = new AddressRequest("home", "2125 Plantation Land", 
                                     "Atlanta", "GA", "30341", "USA");
@@ -75,10 +82,12 @@ public class EmailTest {
         Long cardID = Long.valueOf(3);
         userController.setSuspended(id, true);
         userController.deleteCard(id, cardID);
-        */
         // Test "Forgot Password" functionality
         //ResetPasswordRequest resetReq = new ResetPasswordRequest(email, "superSecurePassword");
         //userController.resetPassword(resetReq);
+        */
+        Long promoID = Long.valueOf(3);
+        AdminPromotion.send(promoID);
     }
     /*
      * Notes:
