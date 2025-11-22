@@ -9,6 +9,7 @@ import com.cinema.backend.services.PromotionService;
 import com.cinema.backend.services.UserService;
 import com.cinema.backend.repository.PromotionRepository;
 import com.cinema.backend.repository.UserRepository;
+import com.cinema.backend.model.DiscountType;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -60,7 +61,7 @@ public class AdminPromotionController {
     }
 
     @GetMapping
-    public List<Promotion> list() {
+    public List<PromotionResponse> list() {
         return promoRepo.findAll()
                 .stream()
                 .map(this::toDto)
