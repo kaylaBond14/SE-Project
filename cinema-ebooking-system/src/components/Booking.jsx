@@ -1,7 +1,7 @@
 // Booking.jsx
-import React, { useState } from 'react'; // <-- Import useState
+import React, { useState } from 'react';
 import SeatingChart from './SeatingChart';
-import TicketSelection from './TicketSelection'; // <-- Import new component
+import TicketSelection from './TicketSelection'; 
 
 export default function Booking({ movie, showtime, onGoBack }) {
   
@@ -17,7 +17,7 @@ export default function Booking({ movie, showtime, onGoBack }) {
   // Prototype SeatingChart: Hardcode occupied seats
   const occupiedSeats = ["A2", "A3", "C5", "C7"];
 
-  // === NEW HANDLER for SeatingChart ===
+
   const handleSeatClick = (seat) => {
     // Logic moved from SeatingChart to here
     setSelectedSeats(

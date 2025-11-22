@@ -421,31 +421,28 @@ export default function App() {
           
         const formattedBillingAddress = formatAddressForAPI(billingAddress);
         
-        // No check here; we just build the payload.
         
         const payload = {
-          // FIX: Pass the 16-digit string (even if empty) directly to 'token'
+          // Pass the 16-digit string (even if empty) directly to 'token'
           token: card.cardNumber, 
           
-          // FIX: Calculate last4 based on the card number input or use the existing one
+          // calculate last4 based on the card number input or use the existing one
           last4: (card.cardNumber && card.cardNumber.length >= 4)
             ? card.cardNumber.slice(-4) 
             : card.last4, 
             
           brand: card.cardType,
           
-          // FIX: Use parseInt() for DTO type matching
+          // Use parseInt() for DTO type matching
           expMonth: parseInt(month, 10),
           expYear: parseInt(`20${year}`, 10),
           
-          // FIX: Use the correct key name 'addressReq'
+          // Use the correct key name 'addressReq'
           addressReq: formattedBillingAddress, 
           
-          // FIX: Include the required boolean
+          // Include the required boolean
           billingSameAsHome: card.billingSameAsHome
         };
-
-        // REMOVED: The problematic 'if (card.id !== null) { delete payload.token; }'
 
         return payload;
       };
