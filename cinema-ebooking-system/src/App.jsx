@@ -157,7 +157,7 @@ export default function App() {
   // This function is called by the Login component on a successful login
   const handleLoginSuccess = (userData) => { // Expects { id, role }
     setIsLoggedIn(true);
-    setCurrentUserId(userData.userId); // This will trigger your profile fetch
+    setCurrentUserId(userData.userId); // This will trigger profile fetch
     
     // Save the user's ID to localStorage ***
     localStorage.setItem('userId', userData.userId);
@@ -242,8 +242,8 @@ export default function App() {
     try { 
       // Fetch User Basics
       const userResponse = await fetch(`/api/users/${id}/profile`, {
-        method: 'GET', // UPDATED
-        headers: getAuthHeaders(false) // UPDATED
+        method: 'GET', // 
+        headers: getAuthHeaders(false) // 
       }); 
       if (!userResponse.ok) throw new Error('Failed to fetch user profile.'); 
       const userData = await userResponse.json(); 
