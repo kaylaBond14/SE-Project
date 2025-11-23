@@ -13,7 +13,7 @@ import AdminPortal from "./components/AdminPortal.jsx";
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
   // This is a simple way to manage navigation without using a routing library.
-  const [currentPage, setCurrentPage] = useState('admin');  // change back to 'home' after testing
+  const [currentPage, setCurrentPage] = useState('home');  // change back to 'home' after testing
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 

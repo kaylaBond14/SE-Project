@@ -603,41 +603,98 @@ export const AdminShowtimesPage = ({ onBack }) => {
   );
 };
 
+
 // -------------------------------------------------------------
 // -------------------- PROMOTIONS PAGE ------------------------
 // -------------------------------------------------------------
+// Small form used to apply promo to a booking
+function ApplyPromoForm({ onApply }) {
+  const [bookingId, setBookingId] = useState("");
+  const [code, setCode] = useState("");
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!bookingId || !code) {
+          alert("Enter bookingId and code");
+          return;
+        }
+        onApply(bookingId, code);
+      }}
+      style={{ display: "flex", gap: 8, marginTop: 8 }}
+    >
+      <input
+        placeholder="Booking ID"
+        value={bookingId}
+        onChange={(e) => setBookingId(e.target.value)}
+      />
+      <input
+        placeholder="Promo Code"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+      />
+      <button type="submit">Apply</button>
+    </form>
+  );
+}
+
 export const AdminPromotionsPage = ({ onBack }) => {
   const [promotions, setPromotions] = useState([]);
 
+  // Load promotions from backend
   useEffect(() => {
     (async () => {
       try {
-        const p = await apiFetch("/api/promotions");
+        const p = await apiFetch("/api/admin/promotions");
         setPromotions(Array.isArray(p) ? p : []);
-      } catch {
+      } catch (err) {
+        console.warn("Failed to load promotions, using fallback", err);
         setPromotions(fallbackPromotions);
       }
     })();
   }, []);
 
+  // Create promotion
   const handleCreate = async (ev) => {
     ev.preventDefault();
+
     const formData = Object.fromEntries(new FormData(ev.target).entries());
 
     const payload = {
       ...formData,
-      discountType: null,
+      discountType: null // backend overrides to PERCENT
     };
 
     try {
-      await apiFetch("/api/promotions", {
+      await apiFetch("/api/admin/promotions", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      alert("Promotion created!");
-    } catch {
-      alert("Create promo failed — see console.");
-      console.log(payload);
+
+      alert("Promotion created successfully!");
+
+      // Reload list
+      const p = await apiFetch("/api/admin/promotions");
+      setPromotions(Array.isArray(p) ? p : []);
+
+    } catch (err) {
+      console.warn("Failed to create promotion:", err);
+      alert("Create promo failed — check console");
+      console.log("payload:", payload);
+    }
+  };
+
+  // Apply promo to booking (fixed for your backend)
+  const handleApply = async (bookingId, code) => {
+    const url = `/api/promotions/api/promotions/apply?bookingId=${bookingId}&code=${encodeURIComponent(code)}`;
+
+    try {
+      await apiFetch(url, { method: "POST" });
+      alert("Promotion applied successfully!");
+    } catch (err) {
+      console.error("Apply promo failed:", err);
+      alert("Failed to apply promotion — see console.");
     }
   };
 
@@ -646,23 +703,35 @@ export const AdminPromotionsPage = ({ onBack }) => {
       <button onClick={onBack}>← Back</button>
       <h2 style={{ color: "#fff" }}>Manage Promotions</h2>
 
-      <form onSubmit={handleCreate} style={{ display: "grid", gap: 8, maxWidth: 480 }}>
-        <input name="code" placeholder="Promo Code" required />
-        <input name="discountValue" placeholder="Discount %" type="number" required />
+      {/* Create promo */}
+      <form onSubmit={handleCreate} style={{ maxWidth: 480, display: "grid", gap: 8 }}>
+        <input name="code" placeholder="Promo code (e.g. NEWYEAR25)" required />
+        <input name="discountValue" type="number" placeholder="Discount %" required />
         <input name="startsOn" type="date" required />
         <input name="endsOn" type="date" required />
         <button type="submit">Create Promotion</button>
       </form>
 
-      <h3 style={{ color: "#fff", marginTop: 16 }}>Active Promotions</h3>
+      {/* List */}
+      <h3 style={{ color: "#fff", marginTop: 16 }}>Existing promotions</h3>
       <ul style={{ color: "#ddd" }}>
         {promotions.map((p) => (
-          <li key={p.code}>{p.code} — {p.discount ?? p.discountValue ?? "?"}% ({p.startsOn ?? p.start} → {p.endsOn ?? p.end})</li>
+          <li key={p.id}>
+            {p.code} — {p.discountValue}% ({p.startsOn} → {p.endsOn})
+          </li>
         ))}
       </ul>
+
+      {/* Apply promo */}
+      <div style={{ marginTop: 12, color: "#ddd" }}>
+        <strong>Apply a promo to a booking</strong>
+        <ApplyPromoForm onApply={handleApply} />
+      </div>
     </div>
   );
 };
+
+
 
 // -------------------------------------------------------------
 // ---------------------- USERS PAGE ---------------------------
