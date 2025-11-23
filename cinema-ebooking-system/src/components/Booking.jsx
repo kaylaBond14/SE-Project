@@ -5,9 +5,7 @@ import TicketSelection from './TicketSelection';
 
 export default function Booking({ movie, showtime, onGoBack }) {
   
-
   // If showtime is an object (from MovieDetail), use .id
-  // If showtime is undefined, return null
   const screeningId = showtime?.id; 
   
   // Format the display string
@@ -18,7 +16,7 @@ export default function Booking({ movie, showtime, onGoBack }) {
   const [currentStep, setCurrentStep] = useState('seats'); 
   const [selectedSeats, setSelectedSeats] = useState([]); 
 
-  // Hardcoded prices 
+  // Hardcoded prices (Must match backend expectations)
   const PRICES_CENTS = {
     ADULT: 1500, 
     CHILD: 1000, 
@@ -37,28 +35,100 @@ export default function Booking({ movie, showtime, onGoBack }) {
   const handleContinueToTickets = () => setCurrentStep('tickets');
   const handleBackToSeats = () => setCurrentStep('seats');
 
+  // --- THE FULL CHECKOUT LOGIC ---
   const handleCheckout = async (counts) => {
-    
     const userId = localStorage.getItem('userId');
-    if (!userId) { alert("Please log in."); return; }
+    const token = localStorage.getItem('jwtToken'); // Get token if available
 
-    // Map counts to array
-    const ticketTypes = [];
-    ['adult', 'child', 'senior'].forEach(type => {
-        for(let i=0; i<counts[type]; i++) ticketTypes.push(type.toUpperCase());
-    });
-    
-    // Zip with seats
-    const ticketsWithSeats = selectedSeats.map((seat, index) => ({
-        seatId: seat.seatId,
-        age: ticketTypes[index],
-        priceCents: PRICES_CENTS[ticketTypes[index]]
-    }));
+    if (!userId) { 
+      alert("Please log in to book tickets."); 
+      return; 
+    }
 
-    // Start Booking API Call
-    // ... fetch logic ...
-    // alert("Success");
-    // onGoBack();
+    try {
+      // Prepare Data: Convert counts (2 Adults) into Array ["ADULT", "ADULT"]
+      const ticketTypes = [];
+      ['adult', 'child', 'senior'].forEach(type => {
+        const count = counts[type];
+        for(let i=0; i<count; i++) {
+          ticketTypes.push(type.toUpperCase());
+        }
+      });
+      
+      // Prepare Payload: Zip the ticket types with the selected seat IDs
+      const ticketsPayload = selectedSeats.map((seat, index) => {
+        const ageType = ticketTypes[index];
+        return {
+          seatId: seat.seatId,
+          age: ageType,
+          priceCents: PRICES_CENTS[ageType]
+        };
+      });
+
+      console.log("Step 1: Creating Booking...");
+      
+      // API CALL 1: START BOOKING 
+      const startRes = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: parseInt(userId),
+          screeningId: screeningId, // Use the extracted ID
+          tickets: ticketsPayload.map(t => ({ 
+            age: t.age, 
+            priceCents: t.priceCents 
+          }))
+        })
+      });
+
+      if (!startRes.ok) {
+        const errText = await startRes.text();
+        throw new Error(`Failed to create booking: ${errText}`);
+      }
+
+      const bookingData = await startRes.json();
+      const bookingId = bookingData.id;
+
+      // API CALL 2: ASSIGN SEATS 
+      console.log(`Step 2: Assigning Seats to Booking ${bookingId}...`);
+      
+      const assignRes = await fetch(`/api/bookings/${bookingId}/assign-seats`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bookingId: bookingId,
+          selections: ticketsPayload // Contains seatId, age, price
+        })
+      });
+
+      if (!assignRes.ok) throw new Error("Failed to assign seats");
+
+      // API CALL 3: CONFIRM BOOKING 
+      console.log("Step 3: Confirming Booking...");
+      
+      const confirmRes = await fetch(`/api/bookings/${bookingId}/confirm`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!confirmRes.ok) throw new Error("Failed to confirm booking");
+
+      
+      alert("Success! Your seats are reserved.");
+      onGoBack(); // Navigate back to the movie page
+
+    } catch (error) {
+      console.error("Checkout Failed:", error);
+      alert(`Booking Error: ${error.message}`);
+    }
   };
 
   return (
