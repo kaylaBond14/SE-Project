@@ -1,62 +1,84 @@
 import React, { useState, useEffect } from 'react';
 import MovieCard from "./MovieCard.jsx";
 
-
 export default function Home({ onMovieSelect, isLoggedIn, user }) {
-  // State to hold all movies and a filtered list of movies.
   const [allMovies, setAllMovies] = useState([]);
-  const [filteredMovies, setFilteredMovies] = useState(allMovies);
+  const [filteredMovies, setFilteredMovies] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenres, setSelectedGenres] = useState([]); //array of strings
+  const [selectedGenres, setSelectedGenres] = useState([]); 
   const [genres, setGenres] = useState([]);
-
 
   useEffect(() => {
     (async () => {
       try {
-        // fetch both "now playing" and "coming soon"
+        // Initial Fetch
         const [nowRes, soonRes] = await Promise.all([
           fetch('/api/movies/now-playing'),
           fetch('/api/movies/coming-soon'),
         ]);
-        const [nowData, soonData] = await Promise.all([
-          nowRes.json(),
-          soonRes.json(),
-        ]);
-  
-        // helper to normalize a movie object into the shape your UI expects
-        const norm = (m, isComingSoon) => ({
+        const nowData = await nowRes.json();
+        const soonData = await soonRes.json();
+
+        // Manually fetch showtimes for "Now Playing"
+        const nowMoviesWithTimes = await Promise.all(
+          nowData.map(async (movie) => {
+            try {
+              const timeRes = await fetch(`/api/movies/${movie.id}/screening-options`);
+              if (!timeRes.ok) return { ...movie, showtimes: [] };
+              const options = await timeRes.json();
+              // Extract time string, limit to top 3
+              const times = options.map(o => o.time).slice(0, 3);
+              return { ...movie, showtimes: times };
+            } catch (err) {
+              return { ...movie, showtimes: [] };
+            }
+          })
+        );
+
+        //  RATING MAP (Based on  Database) 
+        const RATING_MAP = {
+          1: "G",
+          2: "PG",
+          3: "PG-13",
+          4: "R",
+          5: "NC-17",
+          6: "NR"
+        };
+
+
+        //  Normalization Helper
+        const norm = (m, isComingSoon, fetchedTimes) => ({
           id: m.id,
           title: m.title,
-          rating: m.rating,
+          
+         
+          // Use the map to convert ID (4) to String ("R")
+          rating: m.rating 
+            ? m.rating 
+            : (RATING_MAP[m.ratingId] || "NR"), 
+          
+
           posterUrl: m.posterUrl ?? m.poster_url,
           trailerUrl: m.trailerUrl ?? m.trailer_url,
           description: m.synopsis,
-          //genre: m.genre ?? '', //OLD CODE
-          //NEW CODE: Genre array for UI filtering
+          
           genres: Array.isArray(m?.genres)
             ? m.genres
             : (typeof m?.genre === 'string' 
               ? m.genre.split(',').map(s => s.trim()).filter(Boolean)
               : []),
-          //OLD STRING if still needed
           genre: Array.isArray(m?.genres)
             ? m.genres.join(', ')
-            : (typeof m?.genre === 'string' 
-              ? m.genre
-              : ''),
-          isComingSoon:
-          isComingSoon,                                 //mark which section it belongs to
-          showtimes: isComingSoon 
-          ? [] // Set to an empty array (or null) if the movie is coming soon
-      : m.showtimes ?? ['2:00 PM', '5:00 PM', '8:00 PM'], // Use actual showtimes (m.showtimes) or the hardcoded fallback
- // hardcoded showtimes
+            : (typeof m?.genre === 'string' ? m.genre : ''),
+            
+          isComingSoon: isComingSoon,
+          showtimes: isComingSoon ? [] : (fetchedTimes || [])
         });
   
-        // combine both lists into one array
+        // Combine lists
         const combined = [
-          ...(Array.isArray(nowData) ? nowData.map(m => norm(m, false)) : []),
-          ...(Array.isArray(soonData) ? soonData.map(m => norm(m, true)) : []),
+          ...nowMoviesWithTimes.map(m => norm(m, false, m.showtimes)),
+          ...soonData.map(m => norm(m, true, [])) 
         ];
   
         setAllMovies(combined);
@@ -69,64 +91,21 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
     })();
   }, []);
 
-  // filtering
-
+  // Filtering Logic
   useEffect(() => {
-    //start from all movies)
     let base = allMovies;
-    // genre OR-logic: include a movie if it has ALL of the selected genres
     if (selectedGenres.length > 0) {
       const selected = new Set(selectedGenres); 
       base = base.filter(m => [...selected].every(g => (m.genres || []).includes(g)));
     }
-
-    // search term (applied on top of genre filter)
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
       base = base.filter(m => m.title.toLowerCase().includes(q));
     }
-
    setFilteredMovies(base);
  }, [allMovies, selectedGenres, searchTerm]);
 
-  /* OLD serve-side, single-genre filtering
-  useEffect(() => {
-    (async () => {`
-      try {
-        if (genreFilter) {
-          const res = await fetch(`/api/movies/filter?genre=${encodeURIComponent(genreFilter)}`);
-          const data = await res.json();
-  
-          // preserve flags from initial combined list
-          const byId = Object.fromEntries(allMovies.map(m => [m.id, m]));
-  
-          const normalized = data.map(m => {
-            const original = byId[m.id];
-            return {
-              id: m.id,
-              title: m.title,
-              rating: m.rating,
-              posterUrl: m.posterUrl ?? m.poster_url,
-              trailerUrl: m.trailerUrl ?? m.trailer_url,
-              description: m.synopsis,
-              genre: m.genre ?? '',
-              isComingSoon: original?.isComingSoon ?? false,                 
-              showtimes: original?.showtimes ?? ['2:00 PM','5:00 PM','8:00 PM'], 
-            };
-          });
-  
-          setFilteredMovies(normalized);
-        } else {
-          setFilteredMovies(allMovies);
-        }
-      } catch (e) {
-        console.error("Filter fetch failed", e);
-        setFilteredMovies([]);
-      }
-    })();
-  }, [genreFilter, allMovies]);
-  */
-
+  // Fetch Genres
   useEffect(() => {
     (async () => {
       try {
@@ -134,137 +113,104 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
         const list = await res.json();
         setGenres(Array.isArray(list) ? list : []);
       } catch (e) {
-        console.error('Failed to load genres', e);
         setGenres([]);
       }
     })();
   }, []);
 
-  // Separate the filtered movies into 'Currently Running' and 'Coming Soon'.
   const currentlyRunning = filteredMovies.filter(movie => !movie.isComingSoon);
   const comingSoon = filteredMovies.filter(movie => movie.isComingSoon);
 
-  // Event handlers for the search and filter inputs.
   const handleSearchChange = (e) => setSearchTerm(e.target.value);
   
-  //NEW: toggle genre selection
   const toggleGenre = (g) => {
     setSelectedGenres(prev =>
       prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
     );
   }
-  //NEW: Label for dropdown button
-  const selectedLabel =
-    selectedGenres.length === 0 ? 'All Genres' 
+
+  const selectedLabel = selectedGenres.length === 0 ? 'All Genres' 
     : selectedGenres.length <=2 ? selectedGenres.join(', ')
     : `${selectedGenres.length} genres selected`;
-  //NEW: clear all genres
+    
   const clearGenres = () => setSelectedGenres([]);
 
-  // Dynamically create a list of all available genres for the dropdown.
-  //const availableGenres = [...new Set(allMovies.map(movie => movie.genre))];
-
-  // Inline styles for the component's layout.
   const containerStyle = { padding: '1.5rem' };
   const headingStyle = { fontSize: '1.875rem', fontWeight: '700', marginBottom: '1rem' };
   const searchFilterContainerStyle = { display: 'flex', gap: '1rem', marginBottom: '1rem' };
   const inputStyle = { padding: '0.5rem', border: '1px solid #444', backgroundColor: '#1a1a1a', color: 'white' };
-  const selectStyle = { padding: '0.5rem', border: '1px solid #444', backgroundColor: '#1a1a1a', color: 'white' };
   const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '1rem' };
 
   return (
     <div style={containerStyle}>
-      {/* Search and Filter UI */}
       <div style={searchFilterContainerStyle}>
-        <input
-          type="text"
-          placeholder="Search by title..."
-          onChange={handleSearchChange}
-          style={inputStyle}
-        />
-        {/* NEW (TEMP?): multi-select genre "dropdown"*/}
+        <input type="text" placeholder="Search by title..." onChange={handleSearchChange} style={inputStyle} />
         <details>
-          <summary style={{ cursor: 'pointer', userSelect: 'none' }}>
-            {selectedLabel} ▾
-            </summary>
-            {/*Menu body: can change around (add max height?) - vertical list*/}
-            <div style={{ textAlign: 'left', marginTop: '0.5rem' }}>
-              {genres.map(g => (
-                <label key={g} style={{ display: 'block', margin: '0.25rem 0' }}>
-                  <input
-                      type="checkbox"
-                      checked={selectedGenres.includes(g)}
-                      onChange={() => toggleGenre(g)}
-                      />{' '}
-                      {g}
-                      </label>
-                    ))}
-                    {/*Clear button*/}
-                    {selectedGenres.length > 0 && (
-                      <button type="button" onClick={clearGenres} style={{ marginTop: '0.5rem' }}>
-                        Clear
-                      </button>
-                    )}
-              </div>
-          </details>    
+          <summary style={{ cursor: 'pointer', userSelect: 'none' }}>{selectedLabel} ▾</summary>
+          <div style={{ textAlign: 'left', marginTop: '0.5rem' }}>
+            {genres.map(g => (
+              <label key={g} style={{ display: 'block', margin: '0.25rem 0' }}>
+                <input type="checkbox" checked={selectedGenres.includes(g)} onChange={() => toggleGenre(g)} />{' '}{g}
+              </label>
+            ))}
+            {selectedGenres.length > 0 && (
+              <button type="button" onClick={clearGenres} style={{ marginTop: '0.5rem' }}>Clear</button>
+            )}
+          </div>
+        </details>    
       </div>
+
       <h1 style={headingStyle}>Currently Running</h1>
-      {/* Grid for currently running movies */}
       <div style={gridStyle}>
         {currentlyRunning.map((movie) => (
-          // When a MovieCard is clicked, the onMovieSelect function from App.jsx is called.
           <MovieCard key={movie.id} movie={movie} onMovieSelect={onMovieSelect} />
         ))}
       </div>
       
       <h1 style={headingStyle}>Coming Soon</h1>
-      {/* Grid for coming soon movies */}
       <div style={gridStyle}>
         {comingSoon.map((movie) => (
           <MovieCard key={movie.id} movie={movie} onMovieSelect={onMovieSelect} />
         ))}
       </div>
-      {/* ==== DASHBOARD SECTIONS (only visible when logged in) ==== */}
-{isLoggedIn && (
-  <div className="user-dashboard">
-    {/* --- My Bookings --- */}
-    <section className="bookings-section">
-      <h2>🎟 My Bookings</h2>
-      <div className="bookings-grid">
-        {[
-          { id: 1, movieTitle: "Inception", showDate: "2025-11-05", showTime: "19:30", seats: "A1, A2" },
-          { id: 2, movieTitle: "Oppenheimer", showDate: "2025-11-10", showTime: "20:00", seats: "B5, B6" },
-        ].map((b) => (
-          <div key={b.id} className="booking-card">
-            <h3>{b.movieTitle}</h3>
-            <p>{b.showDate} at {b.showTime}</p>
-            <p>Seats: {b.seats}</p>
-          </div>
-        ))}
-      </div>
-    </section>
 
-    {/* --- Recommendations --- */}
-    <section className="recommendations-section">
-      <h2>✨ Recommended for You</h2>
-      <div className="recs-grid">
-        {[
-          { id: 101, title: "Interstellar", genre: "Sci-Fi", posterUrl: "https://via.placeholder.com/200x300?text=Interstellar" },
-          { id: 102, title: "Tenet", genre: "Action", posterUrl: "https://via.placeholder.com/200x300?text=Tenet" },
-          { id: 103, title: "The Dark Knight", genre: "Thriller", posterUrl: "https://via.placeholder.com/200x300?text=Dark+Knight" },
-        ].map((r) => (
-          <div key={r.id} className="rec-card">
-            <img src={r.posterUrl} alt={r.title} />
-            <h4>{r.title}</h4>
-            <p>{r.genre}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  </div>
-)}
+      {isLoggedIn && (
+        <div className="user-dashboard">
+          <section className="bookings-section">
+            <h2>🎟 My Bookings</h2>
+            <div className="bookings-grid">
+              {/* Hardcoded bookings - replace with real fetch later if needed */}
+              {[
+                { id: 1, movieTitle: "Inception", showDate: "2025-11-05", showTime: "19:30", seats: "A1, A2" },
+                { id: 2, movieTitle: "Oppenheimer", showDate: "2025-11-10", showTime: "20:00", seats: "B5, B6" },
+              ].map((b) => (
+                <div key={b.id} className="booking-card">
+                  <h3>{b.movieTitle}</h3>
+                  <p>{b.showDate} at {b.showTime}</p>
+                  <p>Seats: {b.seats}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
+          <section className="recommendations-section">
+            <h2>✨ Recommended for You</h2>
+            <div className="recs-grid">
+              {[
+                { id: 101, title: "Interstellar", genre: "Sci-Fi", posterUrl: "https://via.placeholder.com/200x300?text=Interstellar" },
+                { id: 102, title: "Tenet", genre: "Action", posterUrl: "https://via.placeholder.com/200x300?text=Tenet" },
+                { id: 103, title: "The Dark Knight", genre: "Thriller", posterUrl: "https://via.placeholder.com/200x300?text=Dark+Knight" },
+              ].map((r) => (
+                <div key={r.id} className="rec-card">
+                  <img src={r.posterUrl} alt={r.title} />
+                  <h4>{r.title}</h4>
+                  <p>{r.genre}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
-
