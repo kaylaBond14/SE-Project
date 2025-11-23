@@ -207,17 +207,18 @@ const TicketSelection = ({ selectedSeats, onGoBack, onCheckout }) => {
         <div>Total Price: ${totalPrice.toFixed(2)}</div>
       </div>
       
-      <button
-        style={
-          isSelectionComplete && totalSeats > 0
-            ? styles.checkoutButton
-            : { ...styles.checkoutButton, ...styles.disabledButton }
-        }
-        onClick={onCheckout}
-        disabled={!isSelectionComplete || totalSeats === 0} // This is the logic you wanted
-      >
-        Checkout
-      </button>
+    <button
+      style={
+        isSelectionComplete && totalSeats > 0
+        ? styles.checkoutButton
+        : { ...styles.checkoutButton, ...styles.disabledButton }
+      }
+    
+       onClick={() => onCheckout(counts)} 
+      disabled={!isSelectionComplete || totalSeats === 0}
+    >
+    Checkout
+  </button>
     </div>
   );
 };

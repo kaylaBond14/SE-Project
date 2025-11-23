@@ -1,202 +1,141 @@
-// SeatingChart.jsx
-import React from 'react';
+// components/SeatingChart.jsx
+import React, { useState, useEffect } from 'react';
 
-// This is the main component for the seating chart.
-// It now receives selectedSeats and an onSeatClick handler as props.
 const SeatingChart = ({ 
-  rows = 8, 
-  cols = 10, 
-  occupiedSeats = [], 
-  selectedSeats, // <-- PROPS (no more useState)
-  onSeatClick    // <-- PROPS
+  screeningId, 
+  selectedSeats, 
+  onSeatClick 
 }) => {
+  const [seats, setSeats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [gridDimensions, setGridDimensions] = useState({ rows: 0, cols: 0 });
 
-  // This function handles the click event on a seat.
+  // --- YOUR FETCH LOGIC GOES HERE ---
+  useEffect(() => {
+    // Prevent fetching if ID is missing
+    if (!screeningId) {
+        console.error("SeatingChart: screeningId is missing!");
+        setLoading(false); 
+        return;
+    }
+
+    const fetchSeats = async () => {
+      try {
+        console.log(`Fetching seats for screening: ${screeningId}`); 
+        const response = await fetch(`/api/screenings/${screeningId}/seatmap`);
+        
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`API Error: ${response.status} - ${text}`);
+        }
+        
+        const data = await response.json();
+        console.log("Seats loaded:", data); 
+        
+        // Calculate grid size dynamically based on max row/col returned
+        const maxRow = Math.max(...data.map(s => s.rowNum));
+        const maxCol = Math.max(...data.map(s => s.colNum));
+        
+        setGridDimensions({ rows: maxRow, cols: maxCol });
+        setSeats(data);
+      } catch (error) {
+        console.error("Error loading seat map:", error);
+      } finally {
+        setLoading(false); 
+      }
+    };
+
+    fetchSeats();
+  }, [screeningId]);
+  // ----------------------------------
+
   const handleSeatClick = (seat) => {
-    // If the seat is occupied, do nothing and exit the function.
-    if (occupiedSeats.includes(seat)) return;
-    
-    // Call the handler function passed down from the parent (Booking.jsx)
+    if (seat.reserved) return;
     onSeatClick(seat); 
   };
 
-  // This helper function generates a user-friendly seat name like "A1", "B2", etc.
-  const generateSeatName = (row, col) => {
-    const rowLetter = String.fromCharCode(65 + row); // 65 is the ASCII code for 'A'
-    return `${rowLetter}${col + 1}`;
-  };
-
-  // This function renders the seats by looping through rows and columns.
-  const renderSeats = () => {
-    const seats = [];
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
-        const seatName = generateSeatName(i, j);
-        
-        // Check props for selection status, not local state
-        const isSelected = selectedSeats.includes(seatName); 
-        const isOccupied = occupiedSeats.includes(seatName);
-
-        // 
-        // Define a base style object for a seat.
-        const seatStyle = {
-          width: '30px',
-          height: '30px',
-          border: '1px solid #ccc',
-          borderRadius: '5px',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: '0.8em',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s',
-          userSelect: 'none',
-          backgroundColor: '#e0e0e0',
-          borderColor: '#bbb',
-          color: '#333'
-        };
-
-        // Modify the style object based on the seat's state (selected or occupied).
-        if (isSelected) {
-          // Object.assign merges the new styles into the existing style object.
-          Object.assign(seatStyle, {
-            backgroundColor: '#4CAF50', // Green for selected
-            borderColor: '#388E3C',
-            color: '#fff'
-          });
-        } else if (isOccupied) {
-          Object.assign(seatStyle, {
-            backgroundColor: '#f44336', // Red for occupied
-            borderColor: '#D32F2F',
-            color: '#fff',
-            cursor: 'not-allowed',
-            opacity: '0.6'
-          });
-        }
-
-        // Push the seat element with its dynamic style and click handler to the array.
-        seats.push(
-          <div
-            key={seatName} // A unique key is required for each element in a list in React.
-            style={seatStyle}
-            onClick={() => handleSeatClick(seatName)} // Use the modified handler
-          >
-            {seatName}
-          </div>
-        );
-      }
-    }
-    return seats;
-  };
-
-  // ... (All style objects remain the same: containerStyle, headingStyle, etc.) ...
-  // Define styles for the main container and other UI elements.
+  // --- STYLES ---
   const containerStyle = {
-    backgroundColor: '#fff',
-    padding: '20px',
-    borderRadius: '8px',
-    boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
     textAlign: 'center',
-    maxWidth: '600px',
-    width: '90%',
-    margin: '20px auto'
+    margin: '20px auto',
+    maxWidth: '800px',
+    overflowX: 'auto' 
   };
 
-  const headingStyle = { color: '#333', marginBottom: '20px' };
-  
+  const gridStyle = {
+    display: 'grid',
+    // Dynamically set columns based on data
+    gridTemplateColumns: `repeat(${gridDimensions.cols}, 40px)`, 
+    gap: '10px',
+    justifyContent: 'center',
+    marginTop: '20px'
+  };
+
   const screenStyle = {
     backgroundColor: '#333',
     color: '#fff',
-    padding: '15px 0',
+    padding: '10px',
     marginBottom: '30px',
-    borderRadius: '5px',
-    fontSize: '1.2em',
-    fontWeight: 'bold'
+    borderRadius: '0 0 50% 50%', 
+    width: '80%',
+    margin: '0 auto'
   };
 
-  const seatingChartStyle = {
-    display: 'grid',
-    gap: '10px',
-    marginBottom: '20px',
-    justifyContent: 'center',
-    gridTemplateColumns: `repeat(${cols}, 1fr)` // Dynamically sets the number of columns
-  };
-
-  const legendStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '20px',
-    marginTop: '20px',
-    fontSize: '0.9em',
-    color: '#555'
-  };
-
-  const summaryStyle = {
-    marginTop: '30px',
-    paddingTop: '20px',
-    borderTop: '1px solid #eee'
-  };
-  
-  const selectedListStyle = {
-    listStyle: 'none',
-    padding: '0',
-    margin: '10px 0',
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: '5px'
-  };
-
-  // Helper styles for the legend and list items.
-  const listSeatStyle = {
-    width: '20px',
-    height: '20px',
-    borderRadius: '5px',
-    border: '1px solid #ccc',
-    cursor: 'default'
-  };
-  
-  const getLegendSeatStyle = (color, borderColor) => ({
-    ...listSeatStyle, // Use the spread operator to inherit base styles.
-    backgroundColor: color,
-    borderColor: borderColor
-  });
+  if (loading) return <div style={{color:'white'}}>Loading Seat Map...</div>;
 
   return (
-    // The main JSX structure of the component.
     <div style={containerStyle}>
-      <h1 style={headingStyle}>Select Your Seats</h1>
-      <div style={screenStyle}>Screen</div>
-      <div style={seatingChartStyle}>
-        {renderSeats()} {/* Call the function to render the seat grid */}
-      </div>
-
-      <div style={legendStyle}>
-        {/* Legend for seat status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <div style={getLegendSeatStyle('#e0e0e0', '#bbb')}></div> Available
+      <div style={screenStyle}>SCREEN</div>
+      
+      {seats.length === 0 ? (
+        <div style={{color: 'white'}}>No seats found for this screening.</div>
+      ) : (
+        <div style={gridStyle}>
+          {seats.map(seat => {
+            // Check if this specific seat object is inside the selectedSeats array
+            // We compare by ID to be safe
+            const isSelected = selectedSeats.some(s => s.seatId === seat.seatId);
+            
+            return (
+              <div
+                key={seat.seatId}
+                onClick={() => handleSeatClick(seat)}
+                style={{
+                  gridColumn: seat.colNum, // API determines position
+                  gridRow: seat.rowNum,
+                  width: '35px',
+                  height: '35px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.8rem',
+                  cursor: seat.reserved ? 'not-allowed' : 'pointer',
+                  backgroundColor: seat.reserved 
+                    ? '#d32f2f' // Red (Reserved)
+                    : isSelected 
+                      ? '#388e3c' // Green (Selected)
+                      : '#e0e0e0', // Grey (Available)
+                  color: isSelected || seat.reserved ? '#fff' : '#333',
+                  border: isSelected ? '2px solid #1b5e20' : '1px solid #ccc'
+                }}
+              >
+                {seat.label}
+              </div>
+            );
+          })}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <div style={getLegendSeatStyle('#4CAF50', '#388E3C')}></div> Selected
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-          <div style={getLegendSeatStyle('#f44336', '#D32F2F')}></div> Occupied
-        </div>
-      </div>
-
-      <div style={summaryStyle}>
-        <h2>Your Selection:</h2>
-        <ul style={selectedListStyle}>
-          {/* Map over the selectedSeats prop to display the list */}
-          {selectedSeats.map(seat => (
-            <li key={seat}>{seat}</li>
-          ))}
-        </ul>
-        <p>Total Selected: <span>{selectedSeats.length}</span> seats</p>
+      )}
+      
+      {/* Legend */}
+      <div style={{ marginTop: '20px', display: 'flex', gap: '15px', justifyContent: 'center', color: 'white' }}>
+        <span><span style={{color: '#d32f2f'}}>■</span> Reserved</span>
+        <span><span style={{color: '#388e3c'}}>■</span> Selected</span>
+        <span><span style={{color: '#e0e0e0'}}>■</span> Available</span>
       </div>
     </div>
   );
 };
 
-// Export component so it can be used in the Booking.jsx file.
+// THIS IS THE LINE THAT FIXES YOUR ERROR:
 export default SeatingChart;
