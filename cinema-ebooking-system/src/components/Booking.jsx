@@ -5,7 +5,7 @@ import TicketSelection from './TicketSelection';
 
 export default function Booking({ movie, showtime, onGoBack }) {
   
-  // --- 1. HANDLE DATA EXTRACTION ---
+
   // If showtime is an object (from MovieDetail), use .id
   // If showtime is undefined, return null
   const screeningId = showtime?.id; 
@@ -14,12 +14,11 @@ export default function Booking({ movie, showtime, onGoBack }) {
   const displayTime = showtime 
     ? `${showtime.date} at ${showtime.time}` 
     : "Time Selected";
-  // ----------------------------------
 
   const [currentStep, setCurrentStep] = useState('seats'); 
   const [selectedSeats, setSelectedSeats] = useState([]); 
 
-  // Hardcoded prices (ensure these match your business logic)
+  // Hardcoded prices 
   const PRICES_CENTS = {
     ADULT: 1500, 
     CHILD: 1000, 
@@ -39,9 +38,6 @@ export default function Booking({ movie, showtime, onGoBack }) {
   const handleBackToSeats = () => setCurrentStep('seats');
 
   const handleCheckout = async (counts) => {
-    // ... (Use the checkout logic I provided in the previous answer)
-    // ... (Make sure to use screeningId variable we defined above)
-    // I will include the critical start part here:
     
     const userId = localStorage.getItem('userId');
     if (!userId) { alert("Please log in."); return; }

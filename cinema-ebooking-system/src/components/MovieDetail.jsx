@@ -4,7 +4,7 @@ export default function MovieDetail({ movie, onShowtimeSelect, onGoBack }) {
   const [screeningOptions, setScreeningOptions] = useState([]);
   const [isLoadingTimes, setIsLoadingTimes] = useState(true);
 
-  // 1. MODIFY THE EFFECT: Only fetch if the movie is NOT coming soon
+  // Only fetch if the movie is NOT coming soon
   useEffect(() => {
     // Safety check + Business Logic Check
     if (movie?.id && !movie.isComingSoon) {
@@ -70,7 +70,7 @@ export default function MovieDetail({ movie, onShowtimeSelect, onGoBack }) {
           <p style={pStyle}><strong>Genre:</strong> {movie.genres?.join(', ')}</p>
           <p style={pStyle}><strong>Description:</strong> {movie.description}</p>
           
-          {/* 2. LOGIC CHANGE: Check isComingSoon flag for the UI */}
+          {/* Check isComingSoon flag for the UI */}
           {movie.isComingSoon ? (
             <div style={{ 
               marginTop: '20px', 

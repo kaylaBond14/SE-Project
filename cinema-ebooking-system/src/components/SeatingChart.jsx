@@ -10,7 +10,7 @@ const SeatingChart = ({
   const [loading, setLoading] = useState(true);
   const [gridDimensions, setGridDimensions] = useState({ rows: 0, cols: 0 });
 
-  // --- YOUR FETCH LOGIC GOES HERE ---
+  
   useEffect(() => {
     // Prevent fetching if ID is missing
     if (!screeningId) {
@@ -137,5 +137,5 @@ const SeatingChart = ({
   );
 };
 
-// THIS IS THE LINE THAT FIXES YOUR ERROR:
+
 export default SeatingChart;
