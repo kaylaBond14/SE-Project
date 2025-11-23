@@ -7,19 +7,13 @@ import Registration from "./components/Registration.jsx";
 import EditProfile from './components/EditProfile.jsx';
 import Login from './components/Login.jsx'; 
 import ForgotPassword from './components/forgotpassword.jsx';
-import {
-  AdminDashboard,
-  AdminMoviesPage,
-  AdminShowtimesPage,
-  AdminPromotionsPage,
-  AdminUsersPage
-} from "./components/AdminPortal.jsx";
+import AdminPortal from "./components/AdminPortal.jsx";
 
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
   // This is a simple way to manage navigation without using a routing library.
-  const [currentPage, setCurrentPage] = useState('admin-dashboard');  // change back to 'home' after testing
+  const [currentPage, setCurrentPage] = useState('admin');  // change back to 'home' after testing
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
@@ -487,16 +481,8 @@ export default function App() {
     } 
     
     // ✅ ADMIN PORTAL PAGES
-    else if (currentPage === 'admin-dashboard') {
-      return <AdminDashboard onNavigate={setCurrentPage} />;
-    } else if (currentPage === 'admin-movies') {
-      return <AdminMoviesPage onBack={() => setCurrentPage('admin-dashboard')} />;
-    } else if (currentPage === 'admin-showtimes') {
-      return <AdminShowtimesPage onBack={() => setCurrentPage('admin-dashboard')} />;
-    } else if (currentPage === 'admin-promotions') {
-      return <AdminPromotionsPage onBack={() => setCurrentPage('admin-dashboard')} />;
-    } else if (currentPage === 'admin-users') {
-      return <AdminUsersPage onBack={() => setCurrentPage('admin-dashboard')} />;
+    else if (currentPage === 'admin') {
+       return <AdminPortal />;
     }
 
     // Default fallback
