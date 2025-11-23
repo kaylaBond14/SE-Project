@@ -11,7 +11,7 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
   useEffect(() => {
     (async () => {
       try {
-        // 1. Initial Fetch
+        // Initial Fetch
         const [nowRes, soonRes] = await Promise.all([
           fetch('/api/movies/now-playing'),
           fetch('/api/movies/coming-soon'),
@@ -19,7 +19,7 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
         const nowData = await nowRes.json();
         const soonData = await soonRes.json();
 
-        // 2. Manually fetch showtimes for "Now Playing"
+        // Manually fetch showtimes for "Now Playing"
         const nowMoviesWithTimes = await Promise.all(
           nowData.map(async (movie) => {
             try {
@@ -35,7 +35,7 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
           })
         );
 
-        // --- RATING MAP (Based on your Database) ---
+        //  RATING MAP (Based on  Database) 
         const RATING_MAP = {
           1: "G",
           2: "PG",
@@ -44,19 +44,19 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
           5: "NC-17",
           6: "NR"
         };
-        // -------------------------------------------
 
-        // 3. Normalization Helper
+
+        //  Normalization Helper
         const norm = (m, isComingSoon, fetchedTimes) => ({
           id: m.id,
           title: m.title,
           
-          // --- THE RATING FIX ---
+         
           // Use the map to convert ID (4) to String ("R")
           rating: m.rating 
             ? m.rating 
             : (RATING_MAP[m.ratingId] || "NR"), 
-          // ----------------------
+          
 
           posterUrl: m.posterUrl ?? m.poster_url,
           trailerUrl: m.trailerUrl ?? m.trailer_url,
@@ -75,7 +75,7 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
           showtimes: isComingSoon ? [] : (fetchedTimes || [])
         });
   
-        // 4. Combine lists
+        // Combine lists
         const combined = [
           ...nowMoviesWithTimes.map(m => norm(m, false, m.showtimes)),
           ...soonData.map(m => norm(m, true, [])) 
