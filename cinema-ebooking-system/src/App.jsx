@@ -87,7 +87,7 @@ export default function App() {
 
     // Handle routing based on user role
     if (userData.role === 'Admin') {
-      setCurrentPage('admin-dashboard');
+      setCurrentPage('admin');
     } else {
       setCurrentPage('home');
     }
