@@ -6,14 +6,21 @@ import Booking from "./components/Booking.jsx";
 import Registration from "./components/Registration.jsx";
 import EditProfile from './components/EditProfile.jsx';
 import Login from './components/Login.jsx'; 
-import ForgotPassword from './components/forgotpassword.jsx';
-import AdminPortal from "./components/AdminPortal.jsx";
+import ForgotPassword from './components/forgotpassword.jsx'; 
+import ResetPassword from './components/resetpassword.jsx';
 
+
+// Component for the admin dashboard
+const AdminDashboard = () => (
+  <div style={{ padding: '2rem', textAlign: 'center' }}>
+    <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>Admin Dashboard</h1>
+  </div>
+);
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
   // This is a simple way to manage navigation without using a routing library.
-  const [currentPage, setCurrentPage] = useState('home');  // change back to 'home' after testing
+  const [currentPage, setCurrentPage] = useState('home');
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
@@ -22,34 +29,6 @@ export default function App() {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Add this useEffect to check for an existing session on app load 
-  useEffect(() => {
-    const token = localStorage.getItem('jwtToken');
-    const userId = localStorage.getItem('userId'); // Get the saved user ID
-
-    if (token && userId) {
-      console.log('Found existing session, fetching profile...');
-      setIsLoggedIn(true);
-      setCurrentUserId(userId); // This will trigger the *other* useEffect to fetch the profile
-    }
-    // The empty array [] means this runs only ONCE when the app first loads
-  }, []); 
-
-  // Helper function to get auth headers
-  // This reads the token that Login.js saved to localStorage
-  const getAuthHeaders = (includeContentType = true) => {
-    const token = localStorage.getItem('jwtToken');
-    const headers = {};
-
-    if (includeContentType) {
-      headers['Content-Type'] = 'application/json';
-    }
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
-  };
   
   const handleMovieSelect = (movie) => {
     setSelectedMovie(movie);
@@ -80,77 +59,23 @@ export default function App() {
   // This function is called by the Login component on a successful login
   const handleLoginSuccess = (userData) => { // Expects { id, role }
     setIsLoggedIn(true);
-    setCurrentUserId(userData.userId); // This will trigger profile fetch
+    setCurrentUserId(userData.id); // This will trigger your profile fetch
     
-    // Save the user's ID to localStorage ***
-    localStorage.setItem('userId', userData.userId);
-
     // Handle routing based on user role
-    if (userData.role === 'Admin') {
-      setCurrentPage('admin');
+    if (userData.role === 'admin') {
+      setCurrentPage('admin-dashboard');
     } else {
       setCurrentPage('home');
     }
   };
 
-
-  
-  const handleLogout = async () => {
-    console.log("Log out button clicked...");
-    try {
-      const userId = localStorage.getItem('userId');
-      const token = localStorage.getItem('jwtToken');
-
-      if (!userId) {
-        console.error("No userId found in localStorage — cannot log out properly.");
-        return;
-      }
-
-      // Send logout request to backend
-      const response = await fetch('api/users/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // optional if backend uses JWT
-        },
-        body: JSON.stringify({ userId: parseInt(userId) })
-      });
-      console.log("Logout request sent to backend.");
-
-      if (!response.ok) {
-        console.error("Failed to log out:", await response.text());
-        return;
-      }
-
-      // Clear local data and reset frontend state
-      setIsLoggedIn(false);
-      setCurrentUser(null);
-      setCurrentUserId(null);
-      localStorage.removeItem('jwtToken');
-      localStorage.removeItem('userId');
-      console.log("Cleared local session data.");
-      setCurrentPage('home');
-
-      console.log("User logged out and status set to Inactive.");
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
-  
-
-
-
-  /**   This logs the user out and clears their data
+  // This logs the user out and clears their data
   const handleLogout = () => { 
     setIsLoggedIn(false); 
     setCurrentUser(null); 
     setCurrentUserId(null); 
-    localStorage.removeItem('jwtToken');
-    localStorage.removeItem('userId'); // Clear the saved user ID 
     setCurrentPage('home'); 
   };
-  */
-  
 
   // This 'useEffect' hook runs automatically whenever 'currentUserId' changes.
   useEffect(() => { 
@@ -164,20 +89,14 @@ export default function App() {
   const fetchUserProfile = async (id) => { 
     try { 
       // Fetch User Basics
-      const userResponse = await fetch(`/api/users/${id}/profile`, {
-        method: 'GET', // 
-        headers: getAuthHeaders(false) // 
-      }); 
+      const userResponse = await fetch(`/api/users/${id}/profile`); 
       if (!userResponse.ok) throw new Error('Failed to fetch user profile.'); 
       const userData = await userResponse.json(); 
 
       // Fetch User Address (if it exists)
       let addressData = null;
       try {
-        const addressResponse = await fetch(`/api/users/${id}/address`, {
-          method: 'GET', 
-          headers: getAuthHeaders(false) 
-        });
+        const addressResponse = await fetch(`/api/users/${id}/address`);
         if (addressResponse.ok) {
           addressData = await addressResponse.json();
         }
@@ -188,10 +107,7 @@ export default function App() {
       // Fetch User Cards (if they exist)
       let cardsData = [];
       try {
-        const cardsResponse = await fetch(`/api/users/${id}/cards`, {
-          method: 'GET', 
-          headers: getAuthHeaders(false) 
-        });
+        const cardsResponse = await fetch(`/api/users/${id}/cards`);
         if (cardsResponse.ok) {
           cardsData = await cardsResponse.json();
         }
@@ -200,17 +116,13 @@ export default function App() {
       }
       
       // Combine all data into one user object
+      //  API returns user data, but not address or payment.
+      //  add mock data for those parts so the form doesn't break.
       const fullUserData = { 
         ...userData, 
         address: addressData,     // This will be an object or null
         paymentCards: cardsData,  // This will be an array
       }; 
-
-    // This checks if we are on the initial page load (currentPage is 'home')
-    // and navigates to the dashboard if the fetched user is an admin.
-    if (currentPage === 'home' && fullUserData.userTypeName === 'Admin') {
-      setCurrentPage('admin-dashboard');
-    }
 
       setCurrentUser(fullUserData); 
       console.log('Fetched full user profile:', fullUserData); 
@@ -223,16 +135,15 @@ export default function App() {
 
   // Helper function to format address for the API
   const formatAddressForAPI = (addr) => {
-    // Now expects 'zip' from form state
     if (!addr.street || !addr.city || !addr.state || !addr.zip) {
       return null;
     }
     return {
-      label: "Home", 
+      label: "Home",
       street: addr.street,
       city: addr.city,
       state: addr.state,
-      postalCode: addr.zip, 
+      postalCode: addr.zip,
       country: "USA",
     };
   };
@@ -245,6 +156,7 @@ export default function App() {
     let updateFailed = false; 
 
     // Update Basic Info (firstName, lastName, phone, promoOptIn) 
+    // This creates an object that matches  'UpdateUserRequest' DTO 
     const basicsToUpdate = { 
       firstName: updatedData.firstName,
       lastName: updatedData.lastName, 
@@ -254,9 +166,10 @@ export default function App() {
 
     try { 
       console.log('Updating basic info:', basicsToUpdate); 
+      //  call  PATCH endpoint 
       const response = await fetch(`/api/users/${id}`, { 
         method: 'PATCH', 
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' }, 
         body: JSON.stringify(basicsToUpdate), 
       }); 
       if (!response.ok) throw new Error('Failed to update basic info.'); 
@@ -266,8 +179,10 @@ export default function App() {
       updateFailed = true; 
     } 
 
-    //  Update Password (if provided)
+    // Update Password (if provided)
+    // This runs only if the user entered a new password and the first update succeeded
     if (!updateFailed && updatedData.newPassword) { 
+      // This creates an object that matches  'ChangePasswordRequest' DTO 
       const passwordRequest = { 
         currentPassword: updatedData.currentPassword, 
         newPassword: updatedData.newPassword, 
@@ -275,13 +190,15 @@ export default function App() {
 
       try { 
         console.log('Changing password...'); 
+        // call  POST endpoint for changing password 
         const response = await fetch(`/api/users/${id}/change-password`, { 
           method: 'POST', 
-          headers: getAuthHeaders(),
+          headers: { 'Content-Type': 'application/json' }, 
           body: JSON.stringify(passwordRequest), 
         }); 
         
         if (!response.ok) { 
+          // Get the specific error message from the backend (invaild password)
           const errorMsg = await response.text(); 
           throw new Error(errorMsg || 'Failed to change password.'); 
         } 
@@ -292,14 +209,15 @@ export default function App() {
       } 
     } 
     
-    // API logic for Address
+    //  API logic for Address
     if (!updateFailed && updatedData.homeAddress) {
       const formattedAddress = formatAddressForAPI(updatedData.homeAddress);
       if (formattedAddress) {
         try {
           let addressEndpoint = `/api/users/${id}/address`;
-          let addressMethod = 'POST'; 
+          let addressMethod = 'POST'; // Assume we are creating
           
+          // If user already had an address, we PATCH (update) it
           if (currentUser.address && currentUser.address.id) {
             addressEndpoint = `/api/users/${id}/address/${currentUser.address.id}`;
             addressMethod = 'PATCH';
@@ -308,7 +226,7 @@ export default function App() {
           console.log(`Sending address via ${addressMethod} to ${addressEndpoint}`);
           const response = await fetch(addressEndpoint, {
             method: addressMethod,
-            headers: getAuthHeaders(),
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formattedAddress),
           });
           if (!response.ok) throw new Error('Failed to save home address.');
@@ -321,114 +239,65 @@ export default function App() {
       }
     }
     
-    // Full API logic for MULTIPLE Payment Cards 
+    // Full API logic for Payment Card 
+    // This logic assumes we are only managing ONE card (the first in the list)
     if (!updateFailed) {
-      const formCards = updatedData.paymentCards; // Array from EditProfile
-      const existingCards = currentUser.paymentCards || [];
+      const existingCard = currentUser.paymentCards ? currentUser.paymentCards[0] : null;
+      const userWantsToSaveCard = updatedData.paymentInfo;
 
-      // Find cards to ADD, UPDATE, and DELETE
-      const cardsToAdd = formCards.filter(c => c.id === null);
-      const cardsToUpdate = formCards.filter(c => c.id !== null);
-      const cardIdsToUpdate = cardsToUpdate.map(c => c.id);
-      
-      const cardsToDelete = existingCards.filter(
-        (existing) => !cardIdsToUpdate.includes(existing.id)
-      );
+      try {
+        // Case 1: User wants to save (add/update) a card
+        if (userWantsToSaveCard) {
+          if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(updatedData.paymentInfo.expDate)) {
+             throw new Error("Please enter the expiration date in MM/YY format.");
+          }
+          const [month, year] = updatedData.paymentInfo.expDate.split('/');
+          const formattedBillingAddress = formatAddressForAPI(
+            updatedData.paymentInfo.billingAddress
+          );
+          if (!formattedBillingAddress) throw new Error("Please fill out billing address for card.");
 
-     // Helper to build payload 
-      const buildCardPayload = (card) => {
-        const [month, year] = card.expDate.split('/');
-        const billingAddress = card.billingSameAsHome 
-          ? updatedData.homeAddress 
-          : card.billingAddress;
+          const cardPayload = {
+            brand: updatedData.paymentInfo.cardType,
+            cardNumber: updatedData.paymentInfo.cardNumber,
+            expMonth: month,
+            expYear: `20${year}`,
+            billingAddress: formattedBillingAddress,
+          };
           
-        const formattedBillingAddress = formatAddressForAPI(billingAddress);
-        
-        
-        const payload = {
-          // Pass the 16-digit string (even if empty) directly to 'token'
-          token: card.cardNumber, 
-          
-          // calculate last4 based on the card number input or use the existing one
-          last4: (card.cardNumber && card.cardNumber.length >= 4)
-            ? card.cardNumber.slice(-4) 
-            : card.last4, 
-            
-          brand: card.cardType,
-          
-          // Use parseInt() for DTO type matching
-          expMonth: parseInt(month, 10),
-          expYear: parseInt(`20${year}`, 10),
-          
-          // Use the correct key name 'addressReq'
-          addressReq: formattedBillingAddress, 
-          
-          // Include the required boolean
-          billingSameAsHome: card.billingSameAsHome
-        };
+          let cardEndpoint = `/api/users/${id}/cards`;
+          let cardMethod = 'POST';
 
-        return payload;
-      };
-      
-      // Run DELETE operations 
-      for (const card of cardsToDelete) {
-        try {
-          console.log(`Deleting card: ${card.id}`);
-          const response = await fetch(`/api/users/${id}/cards/${card.id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders(false)
-          });
-          if (!response.ok) throw new Error(`Failed to delete card ${card.id}`);
-        } catch (err) {
-          console.error(err);
-          alert(err.message);
-          updateFailed = true;
-        }
-      }
-
-      // Run ADD operations
-      for (const card of cardsToAdd) {
-        try {
-          console.log("Adding new card...");
-          const payload = buildCardPayload(card);
-          if (!payload.token) { // New cards MUST have a number
-             throw new Error("New card is missing a card number.");
+          // If a card already exists, PATCH it
+          if (existingCard && existingCard.id) {
+            cardEndpoint = `/api/users/${id}/cards/${existingCard.id}`;
+            cardMethod = 'PATCH';
           }
           
-          const response = await fetch(`/api/users/${id}/cards`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(payload),
+          console.log(`Sending card via ${cardMethod} to ${cardEndpoint}`);
+          const response = await fetch(cardEndpoint, {
+            method: cardMethod,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cardPayload),
           });
-          if (!response.ok) throw new Error('Failed to add new card.');
-        } catch (err) {
-          console.error(err);
-          alert(err.message);
-          updateFailed = true;
-        }
-      }
+          if (!response.ok) throw new Error('Failed to save payment card.');
 
-      //  Run UPDATE operations 
-      for (const card of cardsToUpdate) {
-        try {
-          console.log(`Updating card: ${card.id}`);
-          const payload = buildCardPayload(card);
-          
-          const response = await fetch(`/api/users/${id}/cards/${card.id}`, {
-            method: 'PATCH',
-            headers: getAuthHeaders(),
-            body: JSON.stringify(payload),
+        // Case 2: User unchecked the box, and a card *did* exist
+        } else if (!userWantsToSaveCard && existingCard) {
+          console.log(`Deleting card at /api/users/${id}/cards/${existingCard.id}`);
+          const response = await fetch(`/api/users/${id}/cards/${existingCard.id}`, {
+            method: 'DELETE'
           });
-          if (!response.ok) throw new Error(`Failed to update card ${card.id}`);
-        } catch (err) {
-          console.error(err);
-          alert(err.message);
-          updateFailed = true;
+          if (!response.ok) throw new Error('Failed to delete payment card.');
         }
+        // Case 3: User doesn't want card, and had no card. Do nothing.
+
+      } catch (error) {
+        console.error(error);
+        alert(error.message);
+        updateFailed = true;
       }
     }
-    
-    
     
     //  Refetch data & go home 
     if (!updateFailed) { 
@@ -440,14 +309,13 @@ export default function App() {
 
 
   // This function decides which page to render based on the current state.
-    // This function decides which page to render based on the current state.
   const renderPage = () => {
     if (currentPage === 'home') {
       return (
         <Home 
           onMovieSelect={handleMovieSelect}
-          isLoggedIn={isLoggedIn} 
-          user={currentUser} 
+          isLoggedIn={isLoggedIn} // NEW
+          user={currentUser} // NEW
         />
       );
     } else if (currentPage === 'movie-detail') {
@@ -467,9 +335,20 @@ export default function App() {
         />
       );
     } else if (currentPage === 'registration') {
-      return <Registration onGoBack={handleGoBackFromRegistration} />;
-    } else if (currentPage === 'edit-profile') {
-      if (!currentUser) return <div style={{ padding: '2rem' }}>Loading profile...</div>;
+      return (
+        <Registration
+          onGoBack={handleGoBackFromRegistration}
+        />
+      );
+    } else if (currentPage == 'edit-profile') {
+      // A loading check 
+      // If the user is logged in but haven't fetched their data yet
+      if (!currentUser) { 
+        // Show a loading message
+        return <div style={{ padding: '2rem' }}>Loading profile...</div>; 
+      } 
+      
+      // Once 'currentUser' is fetched, render the form
       return (
         <EditProfile 
           user={currentUser} 
@@ -482,24 +361,25 @@ export default function App() {
         <Login
           onLoginSuccess={handleLoginSuccess}
           onGoForgot={() => setCurrentPage('forgot-password')}
-          onGoSignup={handleGoToRegister}
+          onGoSignup={handleGoToRegister} // Re-uses your existing function
         />
       );
     } else if (currentPage === 'forgot-password') {
-      return <ForgotPassword onGoBack={() => setCurrentPage('login')} />;
-    } 
-    
-    // ✅ ADMIN PORTAL PAGES
-    else if (currentPage === 'admin') {
-       return <AdminPortal />;
-    }
-
-    // Default fallback
-    else {
-      return <div style={{ padding: '2rem' }}>Page not found.</div>;
+      return (
+        <ForgotPassword
+          onGoBack={() => setCurrentPage('login')} //Goes back to login page
+        />
+      );
+    } else if (currentPage === 'admin-dashboard') {
+      return <AdminDashboard />;
+    } else if (currentPage === 'reset-password') {
+  return (
+    <ResetPassword
+      onGoBack={() => setCurrentPage('login')}
+    />
+      );
     }
   };
-
 
   const appStyle = { 
     fontFamily: 'Arial, sans-serif',
@@ -512,7 +392,7 @@ export default function App() {
     <div style={appStyle}>
       <HomeHeader 
         isLoggedIn={isLoggedIn} 
-        onLoginClick={handleLoginClick} 
+        onLoginClick={handleLoginClick} // NEW
         onLogoutClick={handleLogout} 
         onRegisterClick={handleGoToRegister}
         onProfileClick={handleGoToProfile}

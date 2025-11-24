@@ -6,14 +6,91 @@ import Booking from "./components/Booking.jsx";
 import Registration from "./components/Registration.jsx";
 import EditProfile from './components/EditProfile.jsx';
 import Login from './components/Login.jsx'; 
-import ForgotPassword from './components/forgotpassword.jsx';
-import AdminPortal from "./components/AdminPortal.jsx";
+import ForgotPassword from './components/forgotpassword.jsx'; 
 
+// Component for the admin dashboard
+const AdminDashboard = () => {
+  // Style for the outer container
+  const containerStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap', // Added to help if you add more cards
+    gap: '2rem', // Space between cards
+    marginTop: '2rem'
+  };
+
+  // Style for each card
+  const cardStyle = {
+    backgroundColor: '#3a3a3a', // A slightly lighter dark shade
+    padding: '1.5rem 2rem',
+    borderRadius: '12px',
+    width: '300px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+    cursor: 'pointer',
+    transition: 'transform 0.2s'
+  };
+  
+  // Style for card titles
+  const cardTitleStyle = {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    marginBottom: '0.5rem'
+  };
+
+  // Style for card descriptions
+  const cardDescStyle = {
+    fontSize: '1rem',
+    color: '#ccc', // Lighter text for description
+    minHeight: '40px'
+  };
+
+  return (
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold' }}>
+        Admin Dashboard
+      </h1>
+
+      <div style={containerStyle}>
+        {/* Manage Movies Card */}
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Movies') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Movies</h2>
+          <p style={cardDescStyle}>Add, edit, or remove movie listings and showtimes.</p>
+        </div>
+
+        {/* Manage Promotions Card */}
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Promotions') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Promotions</h2>
+          <p style={cardDescStyle}>Create, update, and manage all active promotions.</p>
+        </div>
+        <div 
+          style={cardStyle}
+          onClick={() => { /* alert('Go to Manage Users') */ }}
+          onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <h2 style={cardTitleStyle}>Manage Users</h2>
+          <p style={cardDescStyle}>Search, view, and edit user accounts and permissions.</p>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
   // This is a simple way to manage navigation without using a routing library.
-  const [currentPage, setCurrentPage] = useState('home');  // change back to 'home' after testing
+  const [currentPage, setCurrentPage] = useState('home'); 
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
@@ -80,14 +157,14 @@ export default function App() {
   // This function is called by the Login component on a successful login
   const handleLoginSuccess = (userData) => { // Expects { id, role }
     setIsLoggedIn(true);
-    setCurrentUserId(userData.userId); // This will trigger profile fetch
+    setCurrentUserId(userData.userId); // This will trigger your profile fetch
     
     // Save the user's ID to localStorage ***
     localStorage.setItem('userId', userData.userId);
 
     // Handle routing based on user role
     if (userData.role === 'Admin') {
-      setCurrentPage('admin');
+      setCurrentPage('admin-dashboard');
     } else {
       setCurrentPage('home');
     }
@@ -165,8 +242,8 @@ export default function App() {
     try { 
       // Fetch User Basics
       const userResponse = await fetch(`/api/users/${id}/profile`, {
-        method: 'GET', // 
-        headers: getAuthHeaders(false) // 
+        method: 'GET', // UPDATED
+        headers: getAuthHeaders(false) // UPDATED
       }); 
       if (!userResponse.ok) throw new Error('Failed to fetch user profile.'); 
       const userData = await userResponse.json(); 
@@ -335,38 +412,29 @@ export default function App() {
         (existing) => !cardIdsToUpdate.includes(existing.id)
       );
 
-     // Helper to build payload 
+      // Helper to build payload 
       const buildCardPayload = (card) => {
         const [month, year] = card.expDate.split('/');
         const billingAddress = card.billingSameAsHome 
-          ? updatedData.homeAddress 
+          ? updatedData.homeAddress // Use the (already formatted) home address
           : card.billingAddress;
           
         const formattedBillingAddress = formatAddressForAPI(billingAddress);
         
-        
+        // This payload matches your 'CardRequest' DTO
         const payload = {
-          // Pass the 16-digit string (even if empty) directly to 'token'
-          token: card.cardNumber, 
-          
-          // calculate last4 based on the card number input or use the existing one
-          last4: (card.cardNumber && card.cardNumber.length >= 4)
-            ? card.cardNumber.slice(-4) 
-            : card.last4, 
-            
           brand: card.cardType,
-          
-          // Use parseInt() for DTO type matching
-          expMonth: parseInt(month, 10),
-          expYear: parseInt(`20${year}`, 10),
-          
-          // Use the correct key name 'addressReq'
-          addressReq: formattedBillingAddress, 
-          
-          // Include the required boolean
-          billingSameAsHome: card.billingSameAsHome
+          expMonth: month,
+          expYear: `20${year}`,
+          billingAddress: formattedBillingAddress,
         };
-
+        
+        // Only add 'cardNumber' if the user entered one
+        // This assumes PATCH can handle partial updates
+        if (card.cardNumber) {
+          payload.cardNumber = card.cardNumber;
+        }
+        
         return payload;
       };
       
@@ -391,7 +459,7 @@ export default function App() {
         try {
           console.log("Adding new card...");
           const payload = buildCardPayload(card);
-          if (!payload.token) { // New cards MUST have a number
+          if (!payload.cardNumber) { // New cards MUST have a number
              throw new Error("New card is missing a card number.");
           }
           
@@ -440,7 +508,6 @@ export default function App() {
 
 
   // This function decides which page to render based on the current state.
-    // This function decides which page to render based on the current state.
   const renderPage = () => {
     if (currentPage === 'home') {
       return (
@@ -467,9 +534,20 @@ export default function App() {
         />
       );
     } else if (currentPage === 'registration') {
-      return <Registration onGoBack={handleGoBackFromRegistration} />;
-    } else if (currentPage === 'edit-profile') {
-      if (!currentUser) return <div style={{ padding: '2rem' }}>Loading profile...</div>;
+      return (
+        <Registration
+          onGoBack={handleGoBackFromRegistration}
+        />
+      );
+    } else if (currentPage == 'edit-profile') {
+      // A loading check 
+      // If the user is logged in but haven't fetched their data yet
+      if (!currentUser) { 
+        // Show a loading message
+        return <div style={{ padding: '2rem' }}>Loading profile...</div>; 
+      } 
+      
+      // Once 'currentUser' is fetched, render the form
       return (
         <EditProfile 
           user={currentUser} 
@@ -482,24 +560,20 @@ export default function App() {
         <Login
           onLoginSuccess={handleLoginSuccess}
           onGoForgot={() => setCurrentPage('forgot-password')}
-          onGoSignup={handleGoToRegister}
+          onGoSignup={handleGoToRegister} // Re-uses existing function
         />
       );
     } else if (currentPage === 'forgot-password') {
-      return <ForgotPassword onGoBack={() => setCurrentPage('login')} />;
-    } 
-    
-    // ✅ ADMIN PORTAL PAGES
-    else if (currentPage === 'admin') {
-       return <AdminPortal />;
-    }
-
-    // Default fallback
-    else {
-      return <div style={{ padding: '2rem' }}>Page not found.</div>;
+      return (
+        <ForgotPassword
+          onGoBack={() => setCurrentPage('login')} //Goes back to login page
+        />
+      );
+    } else if (currentPage === 'admin-dashboard') {
+      return <AdminDashboard />;
+ 
     }
   };
-
 
   const appStyle = { 
     fontFamily: 'Arial, sans-serif',

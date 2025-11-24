@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom'; // Only if your app uses Router
-// If not using Router, you can replace <Link> with <a onClick={onGoBack}>...</a>
+import { Link } from 'react-router-dom';
 
-export default function ForgotPassword({ onGoBack }) {
+export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +19,7 @@ export default function ForgotPassword({ onGoBack }) {
         body: JSON.stringify({ email }),
       });
 
-      // ✅ Backend often returns 202 Accepted even if email doesn’t exist → treat as success
+      // backend returns 202 Accepted even if email doesn’t exist → always treat as success
       if (res.ok || res.status === 202) {
         setSent(true);
       } else {
@@ -50,13 +49,11 @@ export default function ForgotPassword({ onGoBack }) {
           <>
             <input
               type="email"
-              id="resetEmail"
-              className="w-full border rounded px-3 py-2"
-              placeholder="you@example.com"
+              placeholder="Enter your registered email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              disabled={loading}
+              className="border rounded w-full p-2"
             />
 
             {error && (
@@ -75,13 +72,12 @@ export default function ForgotPassword({ onGoBack }) {
           </>
         )}
 
-        {/* Navigation back to Login */}
-        <a
-          onClick={onGoBack}
-          className="text-sm text-blue-500 hover:underline block text-center cursor-pointer"
+        <Link
+          to="/"
+          className="text-sm text-blue-500 hover:underline block text-center"
         >
           Back to Login
-        </a>
+        </Link>
       </form>
     </div>
   );

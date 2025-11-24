@@ -7,13 +7,19 @@ import Registration from "./components/Registration.jsx";
 import EditProfile from './components/EditProfile.jsx';
 import Login from './components/Login.jsx'; 
 import ForgotPassword from './components/forgotpassword.jsx';
-import AdminPortal from "./components/AdminPortal.jsx";
+import {
+  AdminDashboard,
+  AdminMoviesPage,
+  AdminShowtimesPage,
+  AdminPromotionsPage,
+  AdminUsersPage
+} from "./components/AdminPortal.jsx";
 
 
 export default function App() {
   // State to track the current page, selected movie, and selected showtime.
   // This is a simple way to manage navigation without using a routing library.
-  const [currentPage, setCurrentPage] = useState('home');  // change back to 'home' after testing
+  const [currentPage, setCurrentPage] = useState('admin-dashboard');  // change back to 'home' after testing
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [selectedShowtime, setSelectedShowtime] = useState(null);
 
@@ -80,14 +86,14 @@ export default function App() {
   // This function is called by the Login component on a successful login
   const handleLoginSuccess = (userData) => { // Expects { id, role }
     setIsLoggedIn(true);
-    setCurrentUserId(userData.userId); // This will trigger profile fetch
+    setCurrentUserId(userData.userId); // This will trigger your profile fetch
     
     // Save the user's ID to localStorage ***
     localStorage.setItem('userId', userData.userId);
 
     // Handle routing based on user role
     if (userData.role === 'Admin') {
-      setCurrentPage('admin');
+      setCurrentPage('admin-dashboard');
     } else {
       setCurrentPage('home');
     }
@@ -165,8 +171,8 @@ export default function App() {
     try { 
       // Fetch User Basics
       const userResponse = await fetch(`/api/users/${id}/profile`, {
-        method: 'GET', // 
-        headers: getAuthHeaders(false) // 
+        method: 'GET', // UPDATED
+        headers: getAuthHeaders(false) // UPDATED
       }); 
       if (!userResponse.ok) throw new Error('Failed to fetch user profile.'); 
       const userData = await userResponse.json(); 
@@ -335,38 +341,29 @@ export default function App() {
         (existing) => !cardIdsToUpdate.includes(existing.id)
       );
 
-     // Helper to build payload 
+      // Helper to build payload 
       const buildCardPayload = (card) => {
         const [month, year] = card.expDate.split('/');
         const billingAddress = card.billingSameAsHome 
-          ? updatedData.homeAddress 
+          ? updatedData.homeAddress // Use the (already formatted) home address
           : card.billingAddress;
           
         const formattedBillingAddress = formatAddressForAPI(billingAddress);
         
-        
+        // This payload matches your 'CardRequest' DTO
         const payload = {
-          // Pass the 16-digit string (even if empty) directly to 'token'
-          token: card.cardNumber, 
-          
-          // calculate last4 based on the card number input or use the existing one
-          last4: (card.cardNumber && card.cardNumber.length >= 4)
-            ? card.cardNumber.slice(-4) 
-            : card.last4, 
-            
           brand: card.cardType,
-          
-          // Use parseInt() for DTO type matching
-          expMonth: parseInt(month, 10),
-          expYear: parseInt(`20${year}`, 10),
-          
-          // Use the correct key name 'addressReq'
-          addressReq: formattedBillingAddress, 
-          
-          // Include the required boolean
-          billingSameAsHome: card.billingSameAsHome
+          expMonth: month,
+          expYear: `20${year}`,
+          billingAddress: formattedBillingAddress,
         };
-
+        
+        // Only add 'cardNumber' if the user entered one
+        // This assumes PATCH can handle partial updates
+        if (card.cardNumber) {
+          payload.cardNumber = card.cardNumber;
+        }
+        
         return payload;
       };
       
@@ -391,7 +388,7 @@ export default function App() {
         try {
           console.log("Adding new card...");
           const payload = buildCardPayload(card);
-          if (!payload.token) { // New cards MUST have a number
+          if (!payload.cardNumber) { // New cards MUST have a number
              throw new Error("New card is missing a card number.");
           }
           
@@ -490,8 +487,16 @@ export default function App() {
     } 
     
     // ✅ ADMIN PORTAL PAGES
-    else if (currentPage === 'admin') {
-       return <AdminPortal />;
+    else if (currentPage === 'admin-dashboard') {
+      return <AdminDashboard onNavigate={setCurrentPage} />;
+    } else if (currentPage === 'admin-movies') {
+      return <AdminMoviesPage onBack={() => setCurrentPage('admin-dashboard')} />;
+    } else if (currentPage === 'admin-showtimes') {
+      return <AdminShowtimesPage onBack={() => setCurrentPage('admin-dashboard')} />;
+    } else if (currentPage === 'admin-promotions') {
+      return <AdminPromotionsPage onBack={() => setCurrentPage('admin-dashboard')} />;
+    } else if (currentPage === 'admin-users') {
+      return <AdminUsersPage onBack={() => setCurrentPage('admin-dashboard')} />;
     }
 
     // Default fallback
