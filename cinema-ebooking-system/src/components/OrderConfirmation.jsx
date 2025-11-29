@@ -23,7 +23,7 @@ export default function OrderConfirmation({ booking, onGoHome }) {
 
   return (
     <div style={containerStyle}>
-      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>✅</div>
+      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}></div>
       <h1 style={{ color: '#4CAF50', marginBottom: '0.5rem' }}>Booking Confirmed!</h1>
       <p style={{ color: '#ccc' }}>Thank you for your purchase.</p>
 
