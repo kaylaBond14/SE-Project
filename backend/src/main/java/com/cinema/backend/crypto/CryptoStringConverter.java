@@ -6,10 +6,14 @@ import jakarta.persistence.Converter;
 import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import org.springframework.stereotype.Service;
+
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+@Service
 @Converter
 public class CryptoStringConverter implements AttributeConverter<String, String> {
     private static final String TRANSFORM = "AES/GCM/NoPadding";

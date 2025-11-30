@@ -365,22 +365,22 @@ public class UserService {
             throw new IllegalArgumentException("Billing address required (or set a home address to reuse).");
         }
 
-        String pan = normalizePan(req.token());
-        assertValidPan(pan);
-        String last4 = pan.substring(pan.length() - 4);
+        //String pan = normalizePan(req.token());
+        //assertValidPan(pan);
+        //String last4 = pan.substring(pan.length() - 4);
 
         BillingAddress billing = findOrCreateBillingAddress(userId, billingFields);
 
         PaymentCard card = new PaymentCard();
         card.setUser(user);
         card.setBrand(req.brand());
-        card.setToken(pan);
-        card.setLast4(last4);
+        card.setToken(req.token());//card.setToken(pan);
+        card.setLast4(req.token().substring(req.token().length() - 4));//card.setLast4(last4);
         card.setExpMonth((short) req.expMonth());
         card.setExpYear((short) req.expYear());
         card.setBillingAddress(billing);
 
-        emailService.sendAddedCardEmail(user.getEmail());
+        emailService.sendAddedCardEmail(user.getEmail()); //Still sends when error b/c checks moved to CryptoProxy
         return cardRepository.save(card);
     }
 
