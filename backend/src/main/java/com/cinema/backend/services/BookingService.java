@@ -1,6 +1,9 @@
 package com.cinema.backend.services;
 
 import com.cinema.backend.model.Booking;
+import com.cinema.backend.dto.BookingHistoryResponse;
+import com.cinema.backend.dto.CheckoutRequest;
+import com.cinema.backend.dto.CheckoutResponse;
 import com.cinema.backend.model.TicketAgeClassification;
 
 import java.util.List;
@@ -13,7 +16,9 @@ public interface BookingService {
 
     void assignSeats(Long bookingId, List<TicketWithSeatRequest> ticketsWithSeats);
 
-    void confirmBooking(Long bookingId);
+    CheckoutResponse processCheckout(Long bookingId, CheckoutRequest request);
+
+    List<BookingHistoryResponse> getOrderHistory(Long userId);
 
     
     class TicketRequest {
