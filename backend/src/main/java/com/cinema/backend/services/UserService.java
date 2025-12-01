@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.cinema.backend.dto.*;
+import com.cinema.backend.factory.UserFactory;
 //import com.cinema.backend.model.Address;
 import com.cinema.backend.model.HomeAddress;
 import com.cinema.backend.model.BillingAddress;
@@ -47,6 +48,9 @@ public class UserService {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private UserFactory factory;
 
 
     public UserService(
@@ -170,6 +174,8 @@ public class UserService {
     }
 
     public User register(RegisterRequest req) {
+        return factory.createUser(req);
+        /*
         if (userRepository.existsByEmail(req.email())) {
             throw new IllegalArgumentException("Email already in use");
         }
@@ -251,7 +257,7 @@ public class UserService {
                     // optional: auto-use the user's single address if one exists
                     addressRepository.findByUserId(u.getId()).ifPresent(pc::setBillingAddress);
                 }
-                */
+                // Put multi-line comment ender back here
 
                 cardRepository.save(pc);
             }
@@ -263,6 +269,7 @@ public class UserService {
         emailService.sendVerificationEmail(u.getEmail(), verificationToken);
 
         return u;
+        */
     }
 
     // Address ops (1 per user)
@@ -358,22 +365,22 @@ public class UserService {
             throw new IllegalArgumentException("Billing address required (or set a home address to reuse).");
         }
 
-        String pan = normalizePan(req.token());
-        assertValidPan(pan);
-        String last4 = pan.substring(pan.length() - 4);
+        //String pan = normalizePan(req.token());
+        //assertValidPan(pan);
+        //String last4 = pan.substring(pan.length() - 4);
 
         BillingAddress billing = findOrCreateBillingAddress(userId, billingFields);
 
         PaymentCard card = new PaymentCard();
         card.setUser(user);
         card.setBrand(req.brand());
-        card.setToken(pan);
-        card.setLast4(last4);
+        card.setToken(req.token());//card.setToken(pan);
+        card.setLast4(req.token().substring(req.token().length() - 4));//card.setLast4(last4);
         card.setExpMonth((short) req.expMonth());
         card.setExpYear((short) req.expYear());
         card.setBillingAddress(billing);
 
-        emailService.sendAddedCardEmail(user.getEmail());
+        emailService.sendAddedCardEmail(user.getEmail()); //Still sends when error b/c checks moved to CryptoProxy
         return cardRepository.save(card);
     }
 

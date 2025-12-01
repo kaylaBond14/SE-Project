@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
+import com.cinema.backend.crypto.CryptoProxy;
 import com.cinema.backend.crypto.CryptoStringConverter;
 
 @Entity
@@ -33,7 +34,7 @@ public class PaymentCard {
     @Column(name = "exp_year", nullable = false)
     private short expYear;
 
-    @Convert(converter = CryptoStringConverter.class)
+    @Convert(converter = CryptoProxy.class) // Changed from CryptoStringConverter to CryptoProxy
     @Column(name = "token", nullable = false, length = 255)
     private String token;
 
