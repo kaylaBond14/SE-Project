@@ -1,11 +1,17 @@
 package com.cinema.backend.controller;
 
+import com.cinema.backend.dto.BookingHistoryResponse;
+import com.cinema.backend.dto.CheckoutRequest;
+import com.cinema.backend.dto.CheckoutResponse;
 import com.cinema.backend.dto.SeatSelectionDto;
 import com.cinema.backend.model.Booking;
 import com.cinema.backend.model.Ticket;
 import com.cinema.backend.repository.TicketRepository;
 import com.cinema.backend.repository.BookingRepository;
 import com.cinema.backend.services.BookingService;
+
+import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -57,12 +63,24 @@ public class BookingController {
         return ResponseEntity.noContent().build();
     }
 
-    // Confirm booking (optional state change)
-    @PostMapping("/{bookingId}/confirm")
-    public ResponseEntity<Void> confirm(@PathVariable Long bookingId) {
-        bookingService.confirmBooking(bookingId);
-        return ResponseEntity.noContent().build();
+    //Checkout endpoint - handles payment, promotions, confirms booking
+    //POST /api/bookings/{bookingId}/checkout
+    @PostMapping("/{bookingId}/checkout")
+    public ResponseEntity<CheckoutResponse> checkout(
+            @PathVariable Long bookingId,
+            @Valid @RequestBody CheckoutRequest request) {
+        CheckoutResponse response = bookingService.processCheckout(bookingId, request);
+        return ResponseEntity.ok(response);
     }
+
+    //Get order history for user
+    //GET /api/bookings/user/{userId}
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<BookingHistoryResponse>> getOrderHistory(@PathVariable Long userId) {
+        List<BookingHistoryResponse> history = bookingService.getOrderHistory(userId);
+        return ResponseEntity.ok(history);
+    }
+
 
     // fetch booking's tickets
     @GetMapping("/{bookingId}/tickets")
