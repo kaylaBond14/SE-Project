@@ -3,10 +3,13 @@ package com.cinema.backend.services.impl;
 import com.cinema.backend.model.*;
 import com.cinema.backend.repository.*;
 import com.cinema.backend.services.BookingService;
+import com.cinema.backend.services.EmailService;
 import com.cinema.backend.dto.BookingHistoryResponse;
 import com.cinema.backend.dto.CheckoutRequest;
 import com.cinema.backend.dto.CheckoutResponse;
 import com.cinema.backend.services.PromotionService;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +32,12 @@ public class BookingServiceImpl implements BookingService {
     private final FeeRepository feeRepo;
     private final PromotionRepository promoRepo;
     private final PromotionService promotionService;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private UserRepository userRepo;
 
     public BookingServiceImpl(BookingRepository bookingRepo,
                               TicketRepository ticketRepo,
@@ -271,15 +280,25 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.CONFIRMED);
         bookingRepo.save(booking);
 
-        // TODO: Send booking confirmation email
-        // emailService.sendBookingConfirmationEmail(
-        //     user.getEmail(), 
-        //     booking.getBookingNumber(),
-        //     movieTitle,
-        //     screening.getStartsAt(),
-        //     seatLabels,
-        //     total
-        // );
+        // Send booking confirmation email
+        String movieTitle = movieRepo.findById(screening.getMovieId())
+                .map(Movie::getTitle)
+                .orElse("Unknown Movie");
+        List<String> seatLabels = tickets.stream()
+                .map(t -> seatRepo.findById(t.getSeatId())
+                        .map(Seat::getLabel)
+                        .orElse("Unknown"))
+                .toList();
+        User user = userRepo.findById(booking.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        emailService.sendBookingConfirmationEmail(
+            user.getEmail(), 
+            booking.getBookingNumber(),
+            movieTitle,
+            screening.getStartsAt(),
+            seatLabels,
+            total
+        );
 
         // Build response
         return buildCheckoutResponse(booking, screening, tickets, promoCode);
