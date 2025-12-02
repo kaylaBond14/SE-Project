@@ -1,77 +1,132 @@
+// src/components/Checkout.jsx
 import React, { useState, useEffect } from 'react';
 
 export default function Checkout({ 
   movie, 
   showtime, 
-  selectedSeats, 
   ticketCounts, 
   prices, 
   onBack, 
   onConfirm 
 }) {
   const [promoCode, setPromoCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0); 
-  const [savedCards, setSavedCards] = useState([]);
-  const [selectedCardId, setSelectedCardId] = useState('new'); 
-  const [newCard, setNewCard] = useState({ name: '', number: '', expiry: '', cvc: '' });
+  const [promoData, setPromoData] = useState(null); 
+  const [promoMessage, setPromoMessage] = useState('');
+
+  const [savedCards, setSavedCards] = useState([]); 
+  const [selectedCardId, setSelectedCardId] = useState(''); 
+  const [isNewCard, setIsNewCard] = useState(false);
+  
+  const [newCard, setNewCard] = useState({ 
+    brand: 'VISA', 
+    token: '', 
+    last4: '',
+    expMonth: '', 
+    expYear: '' 
+  });
+
+  // STATE FOR BILLING ADDRESS ---
+  const [billingAddr, setBillingAddr] = useState({
+    street: '',
+    city: '',
+    state: '',
+    zip: ''
+  });
+
+  
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // --- 1. SIMULATE FETCHING SAVED CARDS ---
   useEffect(() => {
-    // TODO: Replace with fetch(`/api/users/${userId}/cards`)
-    const mockCards = [
-      { id: 101, last4: '4242', brand: 'Visa' },
-      { id: 102, last4: '8888', brand: 'MasterCard' }
-    ];
-    setSavedCards(mockCards);
+    const fetchCards = async () => {
+      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('jwtToken');
+      if (!userId) return;
+
+      try {
+        const res = await fetch(`/api/users/${userId}/cards`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSavedCards(data);
+          if (data.length > 0) {
+            setSelectedCardId(data[0].id);
+            setIsNewCard(false);
+          } else {
+            setIsNewCard(true);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load cards", err);
+      }
+    };
+    fetchCards();
   }, []);
 
-  // --- 2. MATH ---
   const calculateTotal = () => {
     let subtotalCents = 0;
     Object.entries(ticketCounts).forEach(([type, count]) => {
       if (count > 0) subtotalCents += count * prices[type.toUpperCase()];
     });
 
-    const subtotal = subtotalCents / 100; // Convert to dollars
-    const tax = subtotal * 0.08; // 8% Tax
-    const discountAmount = subtotal * discountPercent;
-    const total = subtotal + tax - discountAmount;
+    const subtotal = subtotalCents / 100; 
+    const tax = subtotal * 0.08; 
+    
+    let discountAmount = 0;
+    if (promoData && promoData.valid) {
+        discountAmount = (subtotal * (promoData.discountValue / 100));
+    }
 
+    const total = subtotal + tax - discountAmount;
     return { subtotal, tax, discountAmount, total };
   };
 
   const { subtotal, tax, discountAmount, total } = calculateTotal();
 
-  // --- 3. HANDLERS ---
-  const handleApplyPromo = () => {
-    // TODO: Replace with fetch(`/api/promotions/${promoCode}`)
-    if (promoCode === "SAVE10") {
-      setDiscountPercent(0.10);
-      alert("Applied: 10% Off!");
-    } else {
-      alert("Invalid Code (Try 'SAVE10')");
-      setDiscountPercent(0);
+  const handleApplyPromo = async () => {
+    if(!promoCode) return;
+    setPromoMessage('Checking...');
+    try {
+        const res = await fetch(`/api/promotions/${promoCode}`);
+        const data = await res.json(); 
+        if (data.valid) {
+            setPromoData(data);
+            setPromoMessage(`Success: ${data.message || 'Code applied'}`);
+        } else {
+            setPromoData(null);
+            setPromoMessage(`Error: ${data.message || 'Invalid code'}`);
+        }
+    } catch (err) {
+        setPromoMessage("Network error checking code.");
     }
   };
 
   const handlePay = async (e) => {
     e.preventDefault();
+    
+    // Basic validation for new card
+    if (isNewCard) {
+        if (!newCard.token || !billingAddr.street || !billingAddr.zip) {
+            alert("Please fill in all card and billing address details.");
+            return;
+        }
+    }
+
     setIsProcessing(true);
     
-    // Simulate processing delay
-    await new Promise(r => setTimeout(r, 1500));
-    
-    // Send data back to Booking.jsx to start the API chain
     onConfirm({
-      amountCents: Math.round(total * 100), // Convert back to cents
-      cardId: selectedCardId === 'new' ? null : selectedCardId
+      amountCents: Math.round(total * 100),
+      paymentCardId: isNewCard ? null : selectedCardId,
+      newCardDetails: isNewCard ? newCard : null,
+      // PASS BILLING ADDRESS UP 
+      billingAddress: isNewCard ? billingAddr : null,
+      
+      promoCode: promoData && promoData.valid ? promoCode : null
     });
   };
 
-  // --- STYLES ---
-  const containerStyle = { display: 'flex', gap: '2rem', flexWrap: 'wrap', textAlign: 'left', maxWidth: '1000px', margin: '0 auto' };
-  const sectionStyle = { flex: 1, minWidth: '300px', backgroundColor: '#333', padding: '20px', borderRadius: '8px' };
+  const containerStyle = { display: 'flex', gap: '2rem', flexWrap: 'wrap', maxWidth: '1000px', margin: '0 auto', textAlign: 'left' };
+  const sectionStyle = { flex: 1, minWidth: '300px', backgroundColor: '#333', padding: '20px', borderRadius: '8px', color: 'white' };
   const inputStyle = { padding: '10px', width: '100%', marginBottom: '10px', borderRadius: '4px', border: '1px solid #555', backgroundColor: '#444', color: 'white' };
 
   return (
@@ -80,13 +135,12 @@ export default function Checkout({
       <h1 style={{marginBottom: '2rem'}}>Checkout</h1>
       
       <div style={containerStyle}>
-        {/* SUMMARY SECTION */}
+        {/* SUMMARY */}
         <div style={sectionStyle}>
           <h2>Order Summary</h2>
           <h3 style={{color: '#cc0000'}}>{movie.title}</h3>
           <p>{showtime.date} at {showtime.time}</p>
           <hr style={{borderColor: '#555'}}/>
-          
           <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
           <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Tax (8%)</span><span>${tax.toFixed(2)}</span></div>
           {discountAmount > 0 && (
@@ -95,42 +149,101 @@ export default function Checkout({
           <hr style={{borderColor: '#555'}}/>
           <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', fontWeight: 'bold'}}><span>Total</span><span>${total.toFixed(2)}</span></div>
 
-          <div style={{marginTop: '20px', paddingTop: '10px', borderTop: '1px solid #555'}}>
-            <label>Promo Code (Try 'SAVE10')</label>
+          <div style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #555'}}>
+            <label>Promotion Code</label>
             <div style={{display: 'flex', gap: '10px'}}>
-              <input type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} style={inputStyle} />
-              <button onClick={handleApplyPromo} style={{cursor: 'pointer', padding: '0 20px'}}>Apply</button>
+              <input type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder="Enter Code" style={inputStyle} />
+              <button onClick={handleApplyPromo} style={{padding: '0 20px', cursor: 'pointer'}}>Apply</button>
             </div>
+            {promoMessage && <p style={{color: promoData?.valid ? '#4CAF50' : 'red', marginTop: '5px'}}>{promoMessage}</p>}
           </div>
         </div>
 
-        {/* PAYMENT SECTION */}
+        {/* PAYMENT */}
         <div style={sectionStyle}>
-          <h2>Payment</h2>
+          <h2>Payment Method</h2>
+          
           {savedCards.map(card => (
             <div key={card.id} style={{marginBottom: '10px', padding: '10px', border: '1px solid #555', borderRadius: '4px'}}>
-              <label style={{cursor: 'pointer', display: 'flex', alignItems: 'center'}}>
-                <input type="radio" name="pay" checked={selectedCardId === card.id} onChange={() => setSelectedCardId(card.id)} style={{marginRight: '10px'}}/>
-                {card.brand} ****{card.last4}
+              <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+                <input 
+                  type="radio" name="paymentMethod" 
+                  checked={!isNewCard && selectedCardId === card.id}
+                  onChange={() => { setIsNewCard(false); setSelectedCardId(card.id); }}
+                  style={{marginRight: '10px'}}
+                />
+                
+
+[Image of credit card icon]
+ {card.brand} ending in ****{card.last4}
               </label>
             </div>
           ))}
+
           <div style={{marginTop: '15px'}}>
-            <label style={{cursor: 'pointer'}}><input type="radio" name="pay" checked={selectedCardId === 'new'} onChange={() => setSelectedCardId('new')} style={{marginRight: '10px'}}/> Use New Card</label>
+            <label style={{cursor: 'pointer'}}>
+              <input 
+                type="radio" name="paymentMethod" 
+                checked={isNewCard}
+                onChange={() => setIsNewCard(true)}
+                style={{marginRight: '10px'}}
+              />
+              Use a different card
+            </label>
           </div>
 
-          {selectedCardId === 'new' && (
-            <div style={{marginTop: '10px', padding: '10px', backgroundColor: '#2a2a2a', borderRadius: '4px'}}>
-              <input placeholder="Name on Card" style={inputStyle} onChange={e => setNewCard({...newCard, name: e.target.value})} />
-              <input placeholder="Card Number" style={inputStyle} onChange={e => setNewCard({...newCard, number: e.target.value})} />
+          {/* NEW CARD FORM + BILLING ADDRESS */}
+          {isNewCard && (
+            <div style={{backgroundColor: '#2a2a2a', padding: '15px', borderRadius: '4px', marginTop: '10px'}}>
+              <h4 style={{marginTop:0}}>Card Details</h4>
+              <input 
+                placeholder="Card Number" style={inputStyle} 
+                onChange={e => setNewCard({...newCard, token: e.target.value, last4: e.target.value.slice(-4)})}
+              />
               <div style={{display: 'flex', gap: '10px'}}>
-                <input placeholder="MM/YY" style={inputStyle} onChange={e => setNewCard({...newCard, expiry: e.target.value})} />
-                <input placeholder="CVC" style={inputStyle} onChange={e => setNewCard({...newCard, cvc: e.target.value})} />
+                 <select style={inputStyle} onChange={e => setNewCard({...newCard, brand: e.target.value})}>
+                     <option value="VISA">Visa</option>
+                     <option value="MASTERCARD">MasterCard</option>
+                     <option value="AMEX">Amex</option>
+                 </select>
+                 <input placeholder="MM" style={inputStyle} maxLength="2" onChange={e => setNewCard({...newCard, expMonth: parseInt(e.target.value) || ''})}/>
+                 <input placeholder="YYYY" style={inputStyle} maxLength="4" onChange={e => setNewCard({...newCard, expYear: parseInt(e.target.value) || ''})}/>
               </div>
+
+              {/* NEW ADDRESS INPUTS  */}
+              <h4 style={{marginTop:'10px'}}>Billing Address</h4>
+              <input 
+                placeholder="Street Address" style={inputStyle} 
+                value={billingAddr.street}
+                onChange={e => setBillingAddr({...billingAddr, street: e.target.value})}
+              />
+              <div style={{display: 'flex', gap: '10px'}}>
+                <input 
+                    placeholder="City" style={inputStyle} 
+                    value={billingAddr.city}
+                    onChange={e => setBillingAddr({...billingAddr, city: e.target.value})}
+                />
+                <input 
+                    placeholder="State" style={inputStyle} 
+                    maxLength="2"
+                    value={billingAddr.state}
+                    onChange={e => setBillingAddr({...billingAddr, state: e.target.value})}
+                />
+              </div>
+              <input 
+                placeholder="Zip Code" style={inputStyle} 
+                value={billingAddr.zip}
+                onChange={e => setBillingAddr({...billingAddr, zip: e.target.value})}
+              />
+              
             </div>
           )}
 
-          <button onClick={handlePay} disabled={isProcessing} style={{width: '100%', marginTop: '20px', padding: '15px', backgroundColor: '#cc0000', color: 'white', border: 'none', fontSize: '1.2rem', fontWeight: 'bold', cursor: isProcessing ? 'not-allowed' : 'pointer', borderRadius: '4px'}}>
+          <button 
+            onClick={handlePay}
+            disabled={isProcessing}
+            style={{width: '100%', marginTop: '20px', padding: '15px', backgroundColor: '#cc0000', color: 'white', border: 'none', fontSize: '1.2rem', fontWeight: 'bold', cursor: isProcessing ? 'not-allowed' : 'pointer', borderRadius: '4px'}}
+          >
             {isProcessing ? 'Processing...' : `Pay $${total.toFixed(2)}`}
           </button>
         </div>
