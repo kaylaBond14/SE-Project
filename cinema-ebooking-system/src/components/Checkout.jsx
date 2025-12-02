@@ -9,6 +9,11 @@ export default function Checkout({
   onBack, 
   onConfirm 
 }) {
+  // FEES CONSTANTS 
+  const ONLINE_FEE = 1.50;
+  const PROCESSING_FEE = 0.50;
+
+
   const [promoCode, setPromoCode] = useState('');
   const [promoData, setPromoData] = useState(null); 
   const [promoMessage, setPromoMessage] = useState('');
@@ -25,14 +30,12 @@ export default function Checkout({
     expYear: '' 
   });
 
-  // STATE FOR BILLING ADDRESS ---
   const [billingAddr, setBillingAddr] = useState({
     street: '',
     city: '',
     state: '',
     zip: ''
   });
-
   
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -63,6 +66,7 @@ export default function Checkout({
     fetchCards();
   }, []);
 
+  
   const calculateTotal = () => {
     let subtotalCents = 0;
     Object.entries(ticketCounts).forEach(([type, count]) => {
@@ -70,14 +74,16 @@ export default function Checkout({
     });
 
     const subtotal = subtotalCents / 100; 
-    const tax = subtotal * 0.08; 
+    const tax = subtotal * 0.07; 
     
     let discountAmount = 0;
     if (promoData && promoData.valid) {
         discountAmount = (subtotal * (promoData.discountValue / 100));
     }
 
-    const total = subtotal + tax - discountAmount;
+    // Add Fees to Final Total
+    const total = subtotal + tax + ONLINE_FEE + PROCESSING_FEE - discountAmount;
+    
     return { subtotal, tax, discountAmount, total };
   };
 
@@ -104,7 +110,6 @@ export default function Checkout({
   const handlePay = async (e) => {
     e.preventDefault();
     
-    // Basic validation for new card
     if (isNewCard) {
         if (!newCard.token || !billingAddr.street || !billingAddr.zip) {
             alert("Please fill in all card and billing address details.");
@@ -118,9 +123,7 @@ export default function Checkout({
       amountCents: Math.round(total * 100),
       paymentCardId: isNewCard ? null : selectedCardId,
       newCardDetails: isNewCard ? newCard : null,
-      // PASS BILLING ADDRESS UP 
       billingAddress: isNewCard ? billingAddr : null,
-      
       promoCode: promoData && promoData.valid ? promoCode : null
     });
   };
@@ -141,8 +144,15 @@ export default function Checkout({
           <h3 style={{color: '#cc0000'}}>{movie.title}</h3>
           <p>{showtime.date} at {showtime.time}</p>
           <hr style={{borderColor: '#555'}}/>
+          
           <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-          <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Tax (8%)</span><span>${tax.toFixed(2)}</span></div>
+          <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Tax (7%)</span><span>${tax.toFixed(2)}</span></div>
+          
+          
+          <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Online Fee</span><span>${ONLINE_FEE.toFixed(2)}</span></div>
+          <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Processing Fee</span><span>${PROCESSING_FEE.toFixed(2)}</span></div>
+        
+
           {discountAmount > 0 && (
             <div style={{display: 'flex', justifyContent: 'space-between', color: '#4CAF50'}}><span>Discount</span><span>-${discountAmount.toFixed(2)}</span></div>
           )}
@@ -172,10 +182,7 @@ export default function Checkout({
                   onChange={() => { setIsNewCard(false); setSelectedCardId(card.id); }}
                   style={{marginRight: '10px'}}
                 />
-                
-
-
- {card.brand} ending in ****{card.last4}
+                {card.brand} ending in ****{card.last4}
               </label>
             </div>
           ))}
@@ -192,7 +199,7 @@ export default function Checkout({
             </label>
           </div>
 
-          {/* NEW CARD FORM + BILLING ADDRESS */}
+          {/* NEW CARD FORM */}
           {isNewCard && (
             <div style={{backgroundColor: '#2a2a2a', padding: '15px', borderRadius: '4px', marginTop: '10px'}}>
               <h4 style={{marginTop:0}}>Card Details</h4>
@@ -210,7 +217,6 @@ export default function Checkout({
                  <input placeholder="YYYY" style={inputStyle} maxLength="4" onChange={e => setNewCard({...newCard, expYear: parseInt(e.target.value) || ''})}/>
               </div>
 
-              {/* NEW ADDRESS INPUTS  */}
               <h4 style={{marginTop:'10px'}}>Billing Address</h4>
               <input 
                 placeholder="Street Address" style={inputStyle} 
@@ -235,7 +241,6 @@ export default function Checkout({
                 value={billingAddr.zip}
                 onChange={e => setBillingAddr({...billingAddr, zip: e.target.value})}
               />
-              
             </div>
           )}
 
