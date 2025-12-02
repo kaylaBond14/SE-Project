@@ -13,7 +13,17 @@ import com.cinema.backend.utils.JwtTokenUtil;
 import com.cinema.backend.dto.RegisterRequest;
 import com.cinema.backend.dto.ResetPasswordRequest;
 import com.cinema.backend.dto.UpdateUserRequest;
+import com.cinema.backend.model.Booking;
+import com.cinema.backend.model.Movie;
 import com.cinema.backend.model.Promotion;
+import com.cinema.backend.model.Screening;
+import com.cinema.backend.model.Seat;
+import com.cinema.backend.model.Ticket;
+import com.cinema.backend.repository.BookingRepository;
+import com.cinema.backend.repository.MovieRepository;
+import com.cinema.backend.repository.ScreeningRepository;
+import com.cinema.backend.repository.SeatRepository;
+import com.cinema.backend.repository.TicketRepository;
 import com.cinema.backend.dto.AddressRequest;
 import com.cinema.backend.dto.CardRequest;
 import com.cinema.backend.dto.CardRequestDuringRegister;
@@ -35,9 +45,24 @@ public class EmailTest {
 
     @Autowired
     private AdminPromotionController AdminPromotion;
+
+    @Autowired
+    private BookingRepository bookingRepo;
+
+    @Autowired
+    private ScreeningRepository screeningRepo;
+
+    @Autowired
+    private TicketRepository ticketRepo;
+
+    @Autowired
+    private MovieRepository movieRepo;
+
+    @Autowired
+    private SeatRepository seatRepo;
     
-    private String email = "cinemaebookingteam2@gmail.com";
-    //private String email = "nathanhienn@gmail.com";
+    //private String email = "cinemaebookingteam2@gmail.com";
+    private String email = "nathanhienn@gmail.com";
     
     @Test
     public void test() {
@@ -85,10 +110,32 @@ public class EmailTest {
         // Test "Forgot Password" functionality
         //ResetPasswordRequest resetReq = new ResetPasswordRequest(email, "superSecurePassword");
         //userController.resetPassword(resetReq);
-        */
+        // Test sending Promotion email
         Long promoID = Long.valueOf(3);
         AdminPromotion.send(promoID);
+        */
+        // Test sending Booking Confirmation email
+        Long bookingID = Long.valueOf(3);
+        Long screeningID = Long.valueOf(21);
+        Booking booking = bookingRepo.findById(bookingID).get();
+        Screening screening = screeningRepo.findById(screeningID).get();
+        List<Ticket> tickets = ticketRepo.findByBookingId(bookingID);
+        List<String> seatLabels = tickets.stream()
+                .map(t -> seatRepo.findById(t.getSeatId())
+                        .map(Seat::getLabel)
+                        .orElse("Unknown"))
+                .toList();
+        Movie movie = movieRepo.findById(screening.getMovieId()).get();
+        emailService.sendBookingConfirmationEmail(
+            email, 
+            booking.getBookingNumber(),
+            movie.getTitle(),
+            screening.getStartsAt(),
+            seatLabels,
+            booking.getTotalCost()
+        );
     }
+
     /*
      * Notes:
      * 1. Creating a User object in the database using UserController.register() works
