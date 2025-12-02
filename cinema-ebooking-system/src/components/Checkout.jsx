@@ -174,7 +174,7 @@ export default function Checkout({
                 />
                 
 
-[Image of credit card icon]
+
  {card.brand} ending in ****{card.last4}
               </label>
             </div>
