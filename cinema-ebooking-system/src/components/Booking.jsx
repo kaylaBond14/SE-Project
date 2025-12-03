@@ -44,17 +44,14 @@ export default function Booking({ movie, showtime, onGoBack }) {
   const handleBackToTickets = () => setCurrentStep('tickets');
 
   //  THE FINAL API ORCHESTRATION 
-  const handleFinalPayment = async (paymentData) => {
+ const handleFinalPayment = async (paymentData) => {
     const userId = localStorage.getItem('userId');
     const token = localStorage.getItem('jwtToken'); 
 
-    if (!userId) { 
-      alert("Please log in to book tickets."); 
-      return; 
-    }
+    if (!userId) { alert("Please log in."); return; }
 
     try {
-      //  Prepare Ticket Data
+      // 1. Prepare Tickets
       const ticketTypes = [];
       ['adult', 'child', 'senior'].forEach(type => {
         const count = ticketCounts[type]; 
@@ -67,9 +64,7 @@ export default function Booking({ movie, showtime, onGoBack }) {
         priceCents: PRICES_CENTS[ticketTypes[index]]
       }));
 
-   
-      // API CALL 1: START BOOKING
-   
+      // 2. Start Booking
       console.log("Step 1: Creating Booking...");
       const startRes = await fetch('/api/bookings', {
         method: 'POST',
@@ -80,90 +75,64 @@ export default function Booking({ movie, showtime, onGoBack }) {
           tickets: ticketsPayload.map(t => ({ age: t.age, priceCents: t.priceCents }))
         })
       });
-
-      if (!startRes.ok) {
-          const err = await startRes.text();
-          throw new Error(`Start Booking Failed: ${err}`);
-      }
+      if (!startRes.ok) throw new Error(await startRes.text());
       const bookingData = await startRes.json();
       const bookingId = bookingData.id;
 
-
-      // API CALL 2: ASSIGN SEATS
-     
+      // 3. Assign Seats
       console.log(`Step 2: Assigning Seats...`);
       const assignRes = await fetch(`/api/bookings/${bookingId}/assign-seats`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ bookingId: bookingId, selections: ticketsPayload })
+        body: JSON.stringify({ bookingId, selections: ticketsPayload })
       });
-
       if (!assignRes.ok) throw new Error("Failed to assign seats");
 
-      
-      // API CALL 3: APPLY PROMOTION (If provided)
-     
+      // 4. Apply Promotion (Pre-check)
       if (paymentData.promoCode) {
         console.log(`Step 3: Applying Promo ${paymentData.promoCode}...`);
-        const promoRes = await fetch(`/api/promotions/apply?bookingId=${bookingId}&code=${paymentData.promoCode}`, {
+        await fetch(`/api/promotions/apply?bookingId=${bookingId}&code=${paymentData.promoCode}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!promoRes.ok) console.warn("Failed to apply promo code, proceeding anyway.");
       }
 
-      
-      // API CALL 4: HANDLE PAYMENT CARD
-     
-      let finalCardId = paymentData.paymentCardId;
-
-      if (!finalCardId && paymentData.newCardDetails) {
-        console.log("Step 4: Saving New Card...", paymentData.newCardDetails);
-        
-        
-        // If billingAddress comes from Checkout, use it. Otherwise fallback.
-        const addrData = paymentData.billingAddress || {}; 
-        
-        const saveCardRes = await fetch(`/api/users/${userId}/cards`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({
-                ...paymentData.newCardDetails,
-                
-             
-                billingSameAsHome: false, 
-                addressReq: {
-                    label: "Billing",
-                    street: addrData.street || "Unknown",
-                    city: addrData.city || "Unknown",
-                    state: addrData.state || "NA",
-                    postalCode: addrData.zip || "00000",
-                    country: "USA"
-                }
-               
-            })
-        });
-        
-        if (!saveCardRes.ok) {
-            const errorText = await saveCardRes.text();
-            throw new Error(`Card Save Failed: ${errorText}`);
-        }
-        
-        const savedCardData = await saveCardRes.json();
-        finalCardId = savedCardData.id;
-      }
-
-     
-      // API CALL 5: FINAL CHECKOUT
-      
+      // STEP 5: FINAL CHECKOUT 
       console.log("Step 5: Finalizing Checkout...");
+
+      // 1. DEFINE THE PAYLOAD VARIABLE (This fixes the error)
+      const checkoutPayload = {
+          promotionCode: paymentData.promoCode || null 
+      };
+
+      // 2. Add the Payment Method
+      if (paymentData.paymentCardId) {
+          // Case A: User picked a Saved Card
+          // We map 'paymentCardId' -> 'savedCardId' to match Backend DTO
+          checkoutPayload.savedCardId = paymentData.paymentCardId;
+      } 
+      else if (paymentData.newCardDetails) {
+          // Case B: User typed a New Card
+          // We map the fields to the 'NewCardInfo' DTO structure
+          checkoutPayload.newCard = {
+              brand: paymentData.newCardDetails.brand,
+              token: paymentData.newCardDetails.token,
+              last4: paymentData.newCardDetails.last4,
+              expMonth: paymentData.newCardDetails.expMonth,
+              expYear: paymentData.newCardDetails.expYear
+          };
+      } else {
+          throw new Error("No payment method selected");
+      }
+
+      // 3. Send the variable we just created
       const checkoutRes = await fetch(`/api/bookings/${bookingId}/checkout`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json', 
             'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ savedCardId: finalCardId }) 
+        body: JSON.stringify(checkoutPayload) // <--- Now this works!
       });
 
       if (!checkoutRes.ok) {
@@ -171,9 +140,9 @@ export default function Booking({ movie, showtime, onGoBack }) {
           throw new Error(`Checkout failed: ${errData}`);
       }
       
-      
-      // SUCCESS: SHOW RECEIPT
-     
+
+
+      // SUCCESS
       setBookingResult({
         bookingNumber: bookingData.bookingNumber || `BK-${bookingId}`,
         movieTitle: movie.title,
@@ -194,7 +163,7 @@ export default function Booking({ movie, showtime, onGoBack }) {
   return (
     <div style={{ padding: '1.5rem', textAlign: 'center', color: 'white' }}>
       
-      {/*CONFIRMATION PAGE (The Receipt) */}
+      {/*CONFIRMATION PAGE */}
       {currentStep === 'confirmed' && bookingResult && (
         <OrderConfirmation 
           booking={bookingResult} 

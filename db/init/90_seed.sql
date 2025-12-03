@@ -144,7 +144,7 @@ INSERT INTO fees (name, amount, effective_on, active) VALUES
 -- promotions
 INSERT INTO promotions (code, description, discount_type, discount_value, min_purchase_amount, max_uses, starts_on, ends_on, active) VALUES
 ('WELCOME10', '10% off for new customers', 'PERCENT', 10, 1000, NULL, '2024-01-01', '2025-12-31', TRUE),
-('SAVE5', '$5 off orders over $20', 'FIXED', 500, 2000, NULL, '2024-01-01', '2025-12-31', TRUE),
+('SAVE5', '$5 off orders over $20', 'FIXED', 5, 2000, NULL, '2024-01-01', '2025-12-31', TRUE),
 ('EARLYBIRD', '15% off early shows', 'PERCENT', 15, 0, NULL, '2024-01-01', '2025-12-31', TRUE);
 
 -- pricing

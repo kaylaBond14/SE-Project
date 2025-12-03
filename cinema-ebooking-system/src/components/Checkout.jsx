@@ -13,7 +13,6 @@ export default function Checkout({
   const ONLINE_FEE = 1.50;
   const PROCESSING_FEE = 0.50;
 
-
   const [promoCode, setPromoCode] = useState('');
   const [promoData, setPromoData] = useState(null); 
   const [promoMessage, setPromoMessage] = useState('');
@@ -66,7 +65,7 @@ export default function Checkout({
     fetchCards();
   }, []);
 
-  
+  // MATH LOGIC 
   const calculateTotal = () => {
     let subtotalCents = 0;
     Object.entries(ticketCounts).forEach(([type, count]) => {
@@ -77,15 +76,27 @@ export default function Checkout({
     const tax = subtotal * 0.07; 
     
     let discountAmount = 0;
+    
+    // Check if promo exists AND check its type
     if (promoData && promoData.valid) {
-        discountAmount = (subtotal * (promoData.discountValue / 100));
+        if (promoData.discountType === 'PERCENT') {
+            // Logic: Subtotal * (10 / 100) = 10% off
+            discountAmount = (subtotal * (promoData.discountValue / 100));
+        } else {
+            // Logic: 'AMOUNT' means fixed cents (e.g. 500 = $5.00)
+            // Just divide by 100 to get dollars
+            discountAmount = promoData.discountValue / 100;
+        }
     }
 
+    // Ensure discount doesn't make total negative
     // Add Fees to Final Total
-    const total = subtotal + tax + ONLINE_FEE + PROCESSING_FEE - discountAmount;
+    let total = subtotal + tax + ONLINE_FEE + PROCESSING_FEE - discountAmount;
+    if (total < 0) total = 0;
     
     return { subtotal, tax, discountAmount, total };
   };
+
 
   const { subtotal, tax, discountAmount, total } = calculateTotal();
 
@@ -95,9 +106,17 @@ export default function Checkout({
     try {
         const res = await fetch(`/api/promotions/${promoCode}`);
         const data = await res.json(); 
+        
         if (data.valid) {
             setPromoData(data);
-            setPromoMessage(`Success: ${data.message || 'Code applied'}`);
+            // Display friendly message based on type
+            const typeLabel = data.discountType === 'PERCENT' ? '%' : '$';
+            // If percent: "10% Off", If amount: "$5.00 Off" (value/100)
+            const valLabel = data.discountType === 'PERCENT' 
+                ? data.discountValue 
+                : (data.discountValue / 100).toFixed(2);
+                
+            setPromoMessage(`Success: ${valLabel}${typeLabel} Off!`);
         } else {
             setPromoData(null);
             setPromoMessage(`Error: ${data.message || 'Invalid code'}`);
@@ -124,7 +143,7 @@ export default function Checkout({
       paymentCardId: isNewCard ? null : selectedCardId,
       newCardDetails: isNewCard ? newCard : null,
       billingAddress: isNewCard ? billingAddr : null,
-      promoCode: promoData && promoData.valid ? promoCode : null
+      promoCode: promoData && promoData.valid ? promoData.code : null
     });
   };
 
@@ -138,7 +157,7 @@ export default function Checkout({
       <h1 style={{marginBottom: '2rem'}}>Checkout</h1>
       
       <div style={containerStyle}>
-        {/* SUMMARY */}
+       
         <div style={sectionStyle}>
           <h2>Order Summary</h2>
           <h3 style={{color: '#cc0000'}}>{movie.title}</h3>
@@ -148,11 +167,9 @@ export default function Checkout({
           <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
           <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Tax (7%)</span><span>${tax.toFixed(2)}</span></div>
           
-          
           <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Online Fee</span><span>${ONLINE_FEE.toFixed(2)}</span></div>
           <div style={{display: 'flex', justifyContent: 'space-between'}}><span>Processing Fee</span><span>${PROCESSING_FEE.toFixed(2)}</span></div>
         
-
           {discountAmount > 0 && (
             <div style={{display: 'flex', justifyContent: 'space-between', color: '#4CAF50'}}><span>Discount</span><span>-${discountAmount.toFixed(2)}</span></div>
           )}
@@ -169,7 +186,7 @@ export default function Checkout({
           </div>
         </div>
 
-        {/* PAYMENT */}
+       
         <div style={sectionStyle}>
           <h2>Payment Method</h2>
           
@@ -182,7 +199,9 @@ export default function Checkout({
                   onChange={() => { setIsNewCard(false); setSelectedCardId(card.id); }}
                   style={{marginRight: '10px'}}
                 />
-                {card.brand} ending in ****{card.last4}
+                
+
+ {card.brand} ending in ****{card.last4}
               </label>
             </div>
           ))}
@@ -199,7 +218,7 @@ export default function Checkout({
             </label>
           </div>
 
-          {/* NEW CARD FORM */}
+          
           {isNewCard && (
             <div style={{backgroundColor: '#2a2a2a', padding: '15px', borderRadius: '4px', marginTop: '10px'}}>
               <h4 style={{marginTop:0}}>Card Details</h4>
