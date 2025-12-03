@@ -1,6 +1,9 @@
 package com.cinema.backend.services;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -199,5 +202,53 @@ public class EmailService {
         String message2 = "Use this code during your next purchase to enjoy a " + discount + "% discount!";
         String duration = " This promotion is valid from " + startsOn.toString() + " to " + endsOn.toString() + ".";
         sendPromotionEmail(email, subject, message1, promoCode, message2, duration);
+    }
+
+
+    // Sends a checkout confirmation email with no attached link or tokens
+    // Similar to sendProfileEditedEmail(), but just with different formatting
+    private void sendCheckoutEmail(String email, String subject, String message1, String bookingNumber, String movieTitle, String screeningTime, String seatLabels, String total, String message2) {
+        try {
+            String content = """
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background-color: #f9f9f9; text-align: center;">
+                        <h2 style="color: #333;">%s</h2>
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                    </div>
+                    <div style="font-family: Arial, sans-serif; max-width: 400px; margin: auto; padding: 20px 120px; border-radius: 8px; background-color: #f9f9f9; text-align: left; white-space: pre;">
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                    </div>
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; background-color: #f9f9f9; text-align: center;">
+                        <p style="font-size: 16px; color: #555;">%s</p>
+                        <p style="font-size: 12px; color: #aaa;">This is an automated message. Please do not reply.</p>
+                    </div>
+                """.formatted(subject, message1, bookingNumber, movieTitle, screeningTime, seatLabels, total, message2);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            helper.setTo(email);
+            helper.setSubject(subject);
+            helper.setFrom(from);
+            helper.setText(content, true);
+            mailSender.send(mimeMessage);
+        } catch (Exception e) {
+            System.err.println("Failed to send email: " + e.getMessage());
+        }
+    }
+    
+    public void sendBookingConfirmationEmail(String email, String bookingNumber, String movieTitle, LocalDateTime screeningTime, List<String> seatLabels, int total) {
+        String subject = "Booking Confirmation - " + movieTitle;
+        String message1 = "Thank you for your booking! Here are your booking details:";
+        String bookNumString = "Booking Number: " + "\t\t" + bookingNumber;
+        String movieTitleString = "Movie Title: " + "\t\t\t" + movieTitle;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a");
+        String screeningTimeString = "Starting Time: " + "\t\t\t" + screeningTime.format(formatter);
+        String seatsString = "Seats: " + "\t\t\t\t" + String.join(", ", seatLabels);
+        String totalWithDecimal = String.format("$%.2f", total / 100.0);
+        String totalString = "Total Paid: " + "\t\t\t" + totalWithDecimal;
+        String message2 = "We look forward to seeing you at the cinema!";
+        sendCheckoutEmail(email, subject, message1, bookNumString, movieTitleString, screeningTimeString, seatsString, totalString, message2);
     }
 }

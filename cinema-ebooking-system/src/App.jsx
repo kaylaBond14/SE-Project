@@ -80,7 +80,7 @@ export default function App() {
   // This function is called by the Login component on a successful login
   const handleLoginSuccess = (userData) => { // Expects { id, role }
     setIsLoggedIn(true);
-    setCurrentUserId(userData.userId); // This will trigger your profile fetch
+    setCurrentUserId(userData.userId); // This will trigger profile fetch
     
     // Save the user's ID to localStorage ***
     localStorage.setItem('userId', userData.userId);
@@ -165,8 +165,8 @@ export default function App() {
     try { 
       // Fetch User Basics
       const userResponse = await fetch(`/api/users/${id}/profile`, {
-        method: 'GET', // UPDATED
-        headers: getAuthHeaders(false) // UPDATED
+        method: 'GET', // 
+        headers: getAuthHeaders(false) // 
       }); 
       if (!userResponse.ok) throw new Error('Failed to fetch user profile.'); 
       const userData = await userResponse.json(); 
@@ -335,29 +335,38 @@ export default function App() {
         (existing) => !cardIdsToUpdate.includes(existing.id)
       );
 
-      // Helper to build payload 
+     // Helper to build payload 
       const buildCardPayload = (card) => {
         const [month, year] = card.expDate.split('/');
         const billingAddress = card.billingSameAsHome 
-          ? updatedData.homeAddress // Use the (already formatted) home address
+          ? updatedData.homeAddress 
           : card.billingAddress;
           
         const formattedBillingAddress = formatAddressForAPI(billingAddress);
         
-        // This payload matches your 'CardRequest' DTO
+        
         const payload = {
+          // Pass the 16-digit string (even if empty) directly to 'token'
+          token: card.cardNumber, 
+          
+          // calculate last4 based on the card number input or use the existing one
+          last4: (card.cardNumber && card.cardNumber.length >= 4)
+            ? card.cardNumber.slice(-4) 
+            : card.last4, 
+            
           brand: card.cardType,
-          expMonth: month,
-          expYear: `20${year}`,
-          billingAddress: formattedBillingAddress,
+          
+          // Use parseInt() for DTO type matching
+          expMonth: parseInt(month, 10),
+          expYear: parseInt(`20${year}`, 10),
+          
+          // Use the correct key name 'addressReq'
+          addressReq: formattedBillingAddress, 
+          
+          // Include the required boolean
+          billingSameAsHome: card.billingSameAsHome
         };
-        
-        // Only add 'cardNumber' if the user entered one
-        // This assumes PATCH can handle partial updates
-        if (card.cardNumber) {
-          payload.cardNumber = card.cardNumber;
-        }
-        
+
         return payload;
       };
       
@@ -382,7 +391,7 @@ export default function App() {
         try {
           console.log("Adding new card...");
           const payload = buildCardPayload(card);
-          if (!payload.cardNumber) { // New cards MUST have a number
+          if (!payload.token) { // New cards MUST have a number
              throw new Error("New card is missing a card number.");
           }
           
