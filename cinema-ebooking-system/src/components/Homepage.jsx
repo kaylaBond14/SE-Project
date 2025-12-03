@@ -7,11 +7,14 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGenres, setSelectedGenres] = useState([]); 
   const [genres, setGenres] = useState([]);
+  
+  // STATE: For real order history
+  const [bookingHistory, setBookingHistory] = useState([]);
 
+  //  FETCH MOVIES & SHOWTIMES 
   useEffect(() => {
     (async () => {
       try {
-        // Initial Fetch
         const [nowRes, soonRes] = await Promise.all([
           fetch('/api/movies/now-playing'),
           fetch('/api/movies/coming-soon'),
@@ -19,14 +22,13 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
         const nowData = await nowRes.json();
         const soonData = await soonRes.json();
 
-        // Manually fetch showtimes for "Now Playing"
+        // Manual Fetch for Showtimes
         const nowMoviesWithTimes = await Promise.all(
           nowData.map(async (movie) => {
             try {
               const timeRes = await fetch(`/api/movies/${movie.id}/screening-options`);
               if (!timeRes.ok) return { ...movie, showtimes: [] };
               const options = await timeRes.json();
-              // Extract time string, limit to top 3
               const times = options.map(o => o.time).slice(0, 3);
               return { ...movie, showtimes: times };
             } catch (err) {
@@ -35,47 +37,21 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
           })
         );
 
-        //  RATING MAP (Based on  Database) 
-        const RATING_MAP = {
-          1: "G",
-          2: "PG",
-          3: "PG-13",
-          4: "R",
-          5: "NC-17",
-          6: "NR"
-        };
+        const RATING_MAP = { 1: "G", 2: "PG", 3: "PG-13", 4: "R", 5: "NC-17", 6: "NR" };
 
-
-        //  Normalization Helper
         const norm = (m, isComingSoon, fetchedTimes) => ({
           id: m.id,
           title: m.title,
-          
-         
-          // Use the map to convert ID (4) to String ("R")
-          rating: m.rating 
-            ? m.rating 
-            : (RATING_MAP[m.ratingId] || "NR"), 
-          
-
+          rating: m.rating ? m.rating : (RATING_MAP[m.ratingId] || "NR"), 
           posterUrl: m.posterUrl ?? m.poster_url,
           trailerUrl: m.trailerUrl ?? m.trailer_url,
           description: m.synopsis,
-          
-          genres: Array.isArray(m?.genres)
-            ? m.genres
-            : (typeof m?.genre === 'string' 
-              ? m.genre.split(',').map(s => s.trim()).filter(Boolean)
-              : []),
-          genre: Array.isArray(m?.genres)
-            ? m.genres.join(', ')
-            : (typeof m?.genre === 'string' ? m.genre : ''),
-            
+          genres: Array.isArray(m?.genres) ? m.genres : (typeof m?.genre === 'string' ? m.genre.split(',').map(s => s.trim()).filter(Boolean) : []),
+          genre: Array.isArray(m?.genres) ? m.genres.join(', ') : (typeof m?.genre === 'string' ? m.genre : ''),
           isComingSoon: isComingSoon,
           showtimes: isComingSoon ? [] : (fetchedTimes || [])
         });
   
-        // Combine lists
         const combined = [
           ...nowMoviesWithTimes.map(m => norm(m, false, m.showtimes)),
           ...soonData.map(m => norm(m, true, [])) 
@@ -91,7 +67,7 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
     })();
   }, []);
 
-  // Filtering Logic
+  // FILTERING LOGIC 
   useEffect(() => {
     let base = allMovies;
     if (selectedGenres.length > 0) {
@@ -105,7 +81,7 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
    setFilteredMovies(base);
  }, [allMovies, selectedGenres, searchTerm]);
 
-  // Fetch Genres
+  // FETCH GENRES 
   useEffect(() => {
     (async () => {
       try {
@@ -117,6 +93,18 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
       }
     })();
   }, []);
+
+  //  FETCH ORDER HISTORY 
+  useEffect(() => {
+    if (isLoggedIn && user?.id) {
+        fetch(`/api/bookings/user/${user.id}`)
+            .then(res => res.json())
+            .then(data => {
+                setBookingHistory(Array.isArray(data) ? data : []);
+            })
+            .catch(err => console.error("Failed to load history", err));
+    }
+  }, [isLoggedIn, user]);
 
   const currentlyRunning = filteredMovies.filter(movie => !movie.isComingSoon);
   const comingSoon = filteredMovies.filter(movie => movie.isComingSoon);
@@ -176,21 +164,35 @@ export default function Home({ onMovieSelect, isLoggedIn, user }) {
 
       {isLoggedIn && (
         <div className="user-dashboard">
+          
           <section className="bookings-section">
-            <h2>🎟 My Bookings</h2>
-            <div className="bookings-grid">
-              {/* Hardcoded bookings - replace with real fetch later if needed */}
-              {[
-                { id: 1, movieTitle: "Inception", showDate: "2025-11-05", showTime: "19:30", seats: "A1, A2" },
-                { id: 2, movieTitle: "Oppenheimer", showDate: "2025-11-10", showTime: "20:00", seats: "B5, B6" },
-              ].map((b) => (
-                <div key={b.id} className="booking-card">
-                  <h3>{b.movieTitle}</h3>
-                  <p>{b.showDate} at {b.showTime}</p>
-                  <p>Seats: {b.seats}</p>
+            <h2>My Bookings</h2>
+            {bookingHistory.length === 0 ? (
+                <p style={{color: '#aaa'}}>No past bookings found.</p>
+            ) : (
+                <div className="bookings-grid">
+                  {bookingHistory.map((b) => (
+                    <div key={b.bookingId} className="booking-card">
+                      <h3>{b.movieTitle}</h3>
+                      <p style={{color: '#ccc', fontSize: '0.9em'}}>#{b.bookingNumber}</p>
+                      
+                      {/* Handle generic "showtime" string or date object */}
+                      <p>{new Date(b.showtime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                      
+                      {/* TicketInfo Loop */}
+                      <p>Seats: {b.tickets.map(t => t.seatLabel).join(', ')}</p>
+                      
+                      {/* Promotion Display */}
+                      {b.promotionCode && <p style={{color: '#4CAF50', fontSize: '0.8em'}}>Promo: {b.promotionCode}</p>}
+                      
+                      {/* Price Display */}
+                      <div style={{marginTop:'5px', fontWeight:'bold'}}>
+                        ${(b.totalCost/100).toFixed(2)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+            )}
           </section>
 
           <section className="recommendations-section">
