@@ -478,59 +478,159 @@ const MovieDetailPage = ({ movieId, onBack }) => {
 // -------------------------------------------------------------
 // -------------------- SHOWTIMES PAGE -------------------------
 // -------------------------------------------------------------
+// Replace the existing AdminShowtimesPage with this implementation
 export const AdminShowtimesPage = ({ onBack }) => {
   const [movies, setMovies] = useState([]);
-  const [showrooms, setShowrooms] = useState(fallbackShowrooms);
+  const [showrooms, setShowrooms] = useState([]); // built from screenings
+  const [screenings, setScreenings] = useState([]);
   const [selectedMovieId, setSelectedMovieId] = useState("");
   const [movieRuntime, setMovieRuntime] = useState(null);
   const [startTime, setStartTime] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [scheduling, setScheduling] = useState(false);
 
+  // Build unique halls array from screening list
+  const buildHallsFromScreenings = (screeningsList = []) => {
+    const map = {};
+    (screeningsList || []).forEach((s) => {
+      // backend ScreeningResponse has hallId and hallName
+      if (s.hallId != null) map[s.hallId] = s.hallName ?? map[s.hallId] ?? `Hall ${s.hallId}`;
+    });
+    return Object.entries(map).map(([id, name]) => ({ id: Number(id), name }));
+  };
+
+  // Load movies and screenings on mount
   useEffect(() => {
     (async () => {
+      setLoading(true);
       try {
-        const mv = await apiFetch("/api/movies");
-        setMovies(Array.isArray(mv) ? mv : []);
-      } catch {
-        setMovies(fallbackMovies);
-      }
+        // parallel fetch movies + screenings
+        const [mv, sc] = await Promise.all([
+          (async () => {
+            try {
+              const data = await apiFetch("/api/movies");
+              return Array.isArray(data) ? data : [];
+            } catch (err) {
+              console.warn("Failed to load movies, fallback used", err);
+              return fallbackMovies;
+            }
+          })(),
+          (async () => {
+            try {
+              const data = await apiFetch("/api/admin/screenings");
+              return Array.isArray(data) ? data : [];
+            } catch (err) {
+              console.warn("Failed to load screenings, fallback empty", err);
+              return [];
+            }
+          })(),
+        ]);
 
-      try {
-        const halls = await apiFetch("/api/halls");
-        if (Array.isArray(halls) && halls.length) setShowrooms(halls);
-      } catch {}
+        setMovies(mv);
+        setScreenings(sc);
+        setShowrooms(buildHallsFromScreenings(sc));
+      } finally {
+        setLoading(false);
+      }
     })();
   }, []);
 
+  // When a movie is selected, fetch its runtime (if available)
   const fetchMovieRuntime = async (movieId) => {
     setMovieRuntime(null);
+    if (!movieId) return;
     try {
       const m = await apiFetch(`/api/movies/${movieId}`);
-      setMovieRuntime(m.runtimeMin || null);
-    } catch {
+      setMovieRuntime(m?.runtimeMin ?? null);
+    } catch (err) {
+      console.warn("Failed to fetch movie runtime", err);
       setMovieRuntime(null);
     }
   };
 
+  // Quick helper to refresh screenings + derived halls
+  const reloadScreenings = async () => {
+    try {
+      const data = await apiFetch("/api/admin/screenings");
+      const sc = Array.isArray(data) ? data : [];
+      setScreenings(sc);
+      setShowrooms(buildHallsFromScreenings(sc));
+    } catch (err) {
+      console.warn("Failed to refresh screenings", err);
+      setScreenings([]);
+      setShowrooms([]);
+    }
+  };
+
+  // Calculate a preview end time using runtime (for UX)
   const calculateEnd = () => {
     if (!startTime || !movieRuntime) return "";
     const start = new Date(startTime);
     start.setMinutes(start.getMinutes() + movieRuntime);
+    // return a datetime-local compatible string without timezone seconds
+    // but for preview we show a simple iso-like substring
     return start.toISOString().slice(0, 16);
   };
 
+  // Submit schedule -> backend expects ScreeningRequest: { movieId, hallId, startsAt }
   const handleSchedule = async (ev) => {
-    ev.preventDefault();
-    const payload = Object.fromEntries(new FormData(ev.target).entries());
+    ev?.preventDefault();
+    if (!selectedMovieId) return alert("Choose a movie first.");
+    if (!startTime) return alert("Choose a start time.");
+    if (!ev) return;
 
+    const form = new FormData(ev.target);
+    const hallIdRaw = form.get("hallId");
+    if (!hallIdRaw) return alert("Choose a showroom.");
+
+    // Normalize startsAt to "YYYY-MM-DDTHH:mm:00" (no Z)
+    // The <input type="datetime-local"> gives "YYYY-MM-DDTHH:mm"
+    // append :00 so Spring's LocalDateTime parser accepts it.
+    let startsAtVal = startTime;
+    if (!startsAtVal.includes(":")) {
+      return alert("Invalid start time format.");
+    }
+    if (startsAtVal.length === 16) startsAtVal = `${startsAtVal}:00`;
+
+    const payload = {
+      movieId: Number(selectedMovieId),
+      hallId: Number(hallIdRaw),
+      startsAt: startsAtVal,
+      // isCanceled optional: not sending means false/default
+    };
+
+    setScheduling(true);
     try {
-      await apiFetch("/api/screenings", {
+      await apiFetch("/api/admin/screenings", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      alert("Showtime scheduled!");
+
+      alert("Screening scheduled!");
+      // clear form and reload listings
+      setStartTime("");
+      setSelectedMovieId("");
+      setMovieRuntime(null);
+      await reloadScreenings();
+    } catch (err) {
+      console.error("Schedule failed:", err);
+      // apiFetch throws Error(status message) — show it
+      alert(`Scheduling failed — check console. ${err.message || ""}`);
+    } finally {
+      setScheduling(false);
+    }
+  };
+
+  // Small renderer helpers
+  const fmtDateTime = (iso) => {
+    try {
+      if (!iso) return "—";
+      // if backend returns with seconds / no Z, new Date() may treat as local; keep simple
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString();
     } catch {
-      alert("Scheduling failed — see console.");
-      console.log("payload:", payload);
+      return iso;
     }
   };
 
@@ -539,69 +639,104 @@ export const AdminShowtimesPage = ({ onBack }) => {
       <button onClick={onBack}>← Back</button>
       <h2 style={{ color: "#fff" }}>Manage Showtimes</h2>
 
-      <form onSubmit={handleSchedule} style={{ display: "grid", gap: 8, maxWidth: 480 }}>
+      {loading ? (
+        <div style={{ color: "#ddd" }}>Loading…</div>
+      ) : (
+        <>
+          <form onSubmit={handleSchedule} style={{ display: "grid", gap: 8, maxWidth: 520 }}>
 
-        <label style={{ color: "#ddd" }}>
-          Movie:
-          <select
-            name="movieId"
-            required
-            value={selectedMovieId}
-            onChange={(e) => {
-              setSelectedMovieId(e.target.value);
-              fetchMovieRuntime(e.target.value);
-            }}
-          >
-            <option value="">Choose</option>
-            {movies.map((m) => (
-              <option key={m.id} value={m.id}>{m.title}</option>
-            ))}
-          </select>
-        </label>
+            <label style={{ color: "#ddd" }}>
+              Movie:
+              <select
+                name="movieId"
+                required
+                value={selectedMovieId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelectedMovieId(id);
+                  fetchMovieRuntime(id);
+                }}
+              >
+                <option value="">Choose</option>
+                {movies.map((m) => (
+                  <option key={m.id} value={m.id}>{m.title}</option>
+                ))}
+              </select>
+            </label>
 
-        <label style={{ color: "#ddd" }}>
-          Runtime:
-          <input readOnly value={movieRuntime ? movieRuntime + " minutes" : "—"} style={{ background: "#444" }} />
-        </label>
+            <label style={{ color: "#ddd" }}>
+              Runtime:
+              <input readOnly value={movieRuntime ? `${movieRuntime} minutes` : "—"} style={{ background: "#444", color: "#fff" }} />
+            </label>
 
-        <label style={{ color: "#ddd" }}>
-          Showroom:
-          <select name="hallId" required>
-            <option value="">Choose</option>
-            {showrooms.map((h) => (
-              <option key={h.id} value={h.id}>{h.name ?? `Hall ${h.id}`}</option>
-            ))}
-          </select>
-        </label>
+            <label style={{ color: "#ddd" }}>
+              Showroom:
+              <select name="hallId" required>
+                <option value="">Choose</option>
+                {showrooms.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name ?? `Hall ${h.id}`}</option>
+                ))}
+              </select>
+            </label>
 
-        <label style={{ color: "#ddd" }}>
-          Starts At:
-          <input
-            name="startsAt"
-            type="datetime-local"
-            required
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-          />
-        </label>
+            <label style={{ color: "#ddd" }}>
+              Starts At:
+              <input
+                name="startsAt"
+                type="datetime-local"
+                required
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </label>
 
-        <label style={{ color: "#ddd" }}>
-          Ends At:
-          <input
-            name="endsAt"
-            type="datetime-local"
-            required
-            readOnly
-            value={calculateEnd()}
-            style={{ background: "#444" }}
-          />
-        </label>
+            <label style={{ color: "#ddd" }}>
+              Ends At (preview):
+              <input readOnly value={calculateEnd()} style={{ background: "#444", color: "#fff" }} />
+            </label>
 
-        <button type="submit">Schedule Showtime</button>
-      </form>
+            <button type="submit" disabled={scheduling}>
+              {scheduling ? "Scheduling…" : "Schedule Showtime"}
+            </button>
+          </form>
+
+          {/* All screenings table */}
+          <h3 style={{ color: "#fff", marginTop: 20 }}>All Screenings</h3>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", color: "#fff" }}>
+              <thead>
+                <tr style={{ textAlign: "left", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <th>Movie</th>
+                  <th>Hall</th>
+                  <th>Starts</th>
+                  <th>Ends</th>
+                  <th>Seats</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {screenings.length ? screenings.map((s) => (
+                  <tr key={s.id} style={{ borderTop: "1px solid rgba(255,255,255,0.03)" }}>
+                    <td style={{ padding: "8px 6px" }}>{s.movieTitle ?? `#${s.movieId}`}</td>
+                    <td>{s.hallName ?? `Hall ${s.hallId}`}</td>
+                    <td>{fmtDateTime(s.startsAt)}</td>
+                    <td>{fmtDateTime(s.endsAt)}</td>
+                    <td>{s.availableSeats ?? "—"}</td>
+                    <td>{s.isCanceled ? "Canceled" : "Active"}</td>
+                  </tr>
+                )) : (
+                  <tr><td colSpan={6} style={{ color: "#ddd", padding: 12 }}><em>No screenings</em></td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 };
+
+
 
 
 // -------------------------------------------------------------
