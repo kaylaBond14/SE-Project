@@ -96,6 +96,12 @@ const styles = {
 };
 
 const TicketSelection = ({ selectedSeats, onGoBack, onCheckout }) => {
+  // Check if user is logged in
+  const userId = localStorage.getItem('userId');
+  const token = localStorage.getItem('jwtToken'); 
+
+  if (!userId) { alert("Please log in."); return; }
+
   const [counts, setCounts] = useState({
     child: 0,
     adult: 0,
