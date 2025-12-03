@@ -742,7 +742,6 @@ export const AdminShowtimesPage = ({ onBack }) => {
 // -------------------------------------------------------------
 // -------------------- PROMOTIONS PAGE ------------------------
 // -------------------------------------------------------------
-// Small form used to apply promo to a booking
 function ApplyPromoForm({ onApply }) {
   const [bookingId, setBookingId] = useState("");
   const [code, setCode] = useState("");
@@ -777,7 +776,7 @@ function ApplyPromoForm({ onApply }) {
 export const AdminPromotionsPage = ({ onBack }) => {
   const [promotions, setPromotions] = useState([]);
 
-  // Load promotions from backend
+  // Load promotions
   useEffect(() => {
     (async () => {
       try {
@@ -809,7 +808,7 @@ export const AdminPromotionsPage = ({ onBack }) => {
 
       alert("Promotion created successfully!");
 
-      // Reload list
+      // Reload list after create
       const p = await apiFetch("/api/admin/promotions");
       setPromotions(Array.isArray(p) ? p : []);
 
@@ -820,7 +819,7 @@ export const AdminPromotionsPage = ({ onBack }) => {
     }
   };
 
-  // Apply promo to booking (fixed for your backend)
+  // Apply promo to a booking
   const handleApply = async (bookingId, code) => {
     const url = `/api/promotions/api/promotions/apply?bookingId=${bookingId}&code=${encodeURIComponent(code)}`;
 
@@ -830,6 +829,20 @@ export const AdminPromotionsPage = ({ onBack }) => {
     } catch (err) {
       console.error("Apply promo failed:", err);
       alert("Failed to apply promotion — see console.");
+    }
+  };
+
+  // ⬅️ NEW: Send promo emails (AdminPromotionController /{id}/send)
+  const handleSendEmail = async (promoId) => {
+    try {
+      await apiFetch(`/api/admin/promotions/${promoId}/send`, {
+        method: "POST",
+      });
+
+      alert("Promotion email send initiated!");
+    } catch (err) {
+      console.error("Send email failed:", err);
+      alert("Failed to send email — check console.");
     }
   };
 
@@ -851,8 +864,16 @@ export const AdminPromotionsPage = ({ onBack }) => {
       <h3 style={{ color: "#fff", marginTop: 16 }}>Existing promotions</h3>
       <ul style={{ color: "#ddd" }}>
         {promotions.map((p) => (
-          <li key={p.id}>
+          <li key={p.id} style={{ marginBottom: 8 }}>
             {p.code} — {p.discountValue}% ({p.startsOn} → {p.endsOn})
+
+            {/* SEND EMAIL BUTTON */}
+            <button
+              style={{ marginLeft: 10 }}
+              onClick={() => handleSendEmail(p.id)}
+            >
+              Send Email
+            </button>
           </li>
         ))}
       </ul>
@@ -865,7 +886,6 @@ export const AdminPromotionsPage = ({ onBack }) => {
     </div>
   );
 };
-
 
 
 // -------------------------------------------------------------
