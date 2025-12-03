@@ -48,7 +48,7 @@ export default function Booking({ movie, showtime, onGoBack }) {
     const userId = localStorage.getItem('userId');
     const token = localStorage.getItem('jwtToken'); 
 
-    if (!userId) { alert("Please log in."); return; }
+    // if (!userId) { alert("Please log in."); return; }
 
     try {
       // 1. Prepare Tickets
